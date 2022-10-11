@@ -1,0 +1,6 @@
+*.png
+*.pdf
+
+AL/*
+__pycache__/*
+*/__pycache__/*
