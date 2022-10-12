@@ -8,7 +8,7 @@ charset-normalizer==2.0.12
 clang==5.0
 cloudpickle==2.2.0
 cycler==0.11.0
-dataclasses==0.8
+dataclasses==0.6
 decorator==5.1.1
 dm-tree==0.1.7
 entrypoints==0.4
@@ -43,7 +43,6 @@ parso==0.7.1
 pexpect==4.8.0
 pickleshare==0.7.5
 Pillow==8.4.0
-pkg_resources==0.0.0
 prompt-toolkit==3.0.31
 protobuf==3.19.4
 ptyprocess==0.7.0
