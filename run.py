@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from models import DenseMCDropoutNetwork
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mu_tau, censbald
+from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald
 from models.losses import tobit_nll
 from read_data import *
 #from datasets import get_dataset
@@ -120,7 +120,7 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_9 = active_ids.copy()
     active_ids_10 = active_ids.copy()
 
-    start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_10, model_args)
+    start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args)
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
     c_mutau_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])

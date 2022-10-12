@@ -6,9 +6,9 @@ from .causal_bald import mu_tau
 from scipy import stats
 import torch
 
-class MuRhoSampling(Strategy):
+class MuTauSampling(Strategy):
     def __init__(self, X, Y, Cens,  ids, net_args):
-        super(MuRhoSampling, self).__init__(X, Y, Cens,  ids, net_args)
+        super(MuTauSampling, self).__init__(X, Y, Cens,  ids, net_args)
 
     def get_scores(self, n):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
