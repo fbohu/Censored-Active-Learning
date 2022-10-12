@@ -28,3 +28,7 @@ def pi(mu_0, mu_1, t, pt, temperature):
 
 def mu_pi(mu_0, mu_1, t, pt, temperature):
     return mu(mu_0, mu_1, t, pt, temperature) + pi(mu_0, mu_1, t, pt, temperature)
+
+
+def mu_tau(mu_0, mu_1, t, pt, temperature):
+    return mu(mu_0, mu_1, t, pt, temperature) + tau(mu_0, mu_1, t, pt, temperature)

@@ -17,7 +17,7 @@ class MuRhoSampling(Strategy):
         mu_1  = samples[:,:,2]
         pt = (mu_0 >= mu_1).float().mean(1)
         t = torch.bernoulli(pt)
-        scores =  mu_rho(mu_0, mu_1, t=t,  pt=pt, temperature=1.0)
+        scores =  mu_rho(mu_0, mu_1, t=t,  pt=pt, temperature=0.25)
         return scores.detach().numpy(), idxs_unlabeled
         '''  
 

@@ -190,12 +190,15 @@ class BayesianNN(BayesianModule):
         self.fc2 = nn.Linear(128, 128)
         self.fc3_drop = ConsistentMCDropout(p=dropout_p)
         self.fc3 = nn.Linear(128, 128)
+        self.fc4_drop = ConsistentMCDropout(p=dropout_p)
+        self.fc4 = nn.Linear(128, 128)
         self.fc5 = nn.Linear(128, 4)
 
     def mc_forward_impl(self, input: torch.Tensor):
         input = F.leaky_relu(self.fc1_drop(self.fc1(input)))
         input = F.leaky_relu(self.fc2_drop(self.fc2(input)))
         input = F.leaky_relu(self.fc3_drop(self.fc3(input)))
+        input = F.leaky_relu(self.fc4_drop(self.fc4(input)))
         #input = F.relu(self.fc1(input))
         #input = F.relu(self.fc2(input))
         input = self.fc5(input)

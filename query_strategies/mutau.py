@@ -2,22 +2,22 @@ import numpy as np
 from .strategy import Strategy
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from .causal_bald import mu
+from .causal_bald import mu_tau
 from scipy import stats
 import torch
 
-class MuSampling(Strategy):
+class MuRhoSampling(Strategy):
     def __init__(self, X, Y, Cens,  ids, net_args):
-        super(MuSampling, self).__init__(X, Y, Cens,  ids, net_args)
+        super(MuRhoSampling, self).__init__(X, Y, Cens,  ids, net_args)
 
     def get_scores(self, n):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
-        samples = self.net.sample(self.X[idxs_unlabeled])
+        samples = self.net.sample(self.X[idxs_unlabeled]).detach()
         mu_0  = samples[:,:,0]
         mu_1  = samples[:,:,2]
         pt = (mu_0 >= mu_1).float().mean(1)
         t = torch.bernoulli(pt)
-        scores =  mu(mu_0, mu_1, t=1.0,  pt=pt, temperature=0.25)
+        scores =  mu_tau(mu_0, mu_1, t=t,  pt=pt, temperature=0.25)
         return scores.detach().numpy(), idxs_unlabeled
         '''  
 

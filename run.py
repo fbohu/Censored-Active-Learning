@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from models import DenseMCDropoutNetwork
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, censbald
+from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mu_tau, censbald
 from models.losses import tobit_nll
 from read_data import *
 #from datasets import get_dataset
@@ -60,10 +60,10 @@ model_args = {'in_features': x_train.shape[-1],
 
 
 ## Params sklearn
-init_size = 100
+init_size = 50
 query_size = 5
 n_rounds = 50 # The first iteration is silent is silent.
-trials = 5
+trials = 1
 
 #init_size = 146
 #query_size = 5
@@ -86,6 +86,7 @@ pi_ = np.zeros([trials, n_rounds])
 rho_ = np.zeros([trials, n_rounds])
 tau_ = np.zeros([trials, n_rounds])
 murho_ = np.zeros([trials, n_rounds])
+mutau_ = np.zeros([trials, n_rounds])
 
 c_random = np.zeros([trials, n_rounds])
 c_bald_ = np.zeros([trials, n_rounds])
@@ -96,6 +97,7 @@ c_pi_ = np.zeros([trials, n_rounds])
 c_rho_ = np.zeros([trials, n_rounds])
 c_tau_ = np.zeros([trials, n_rounds])
 c_murho_ = np.zeros([trials, n_rounds])
+c_mutau_ = np.zeros([trials, n_rounds])
 
 x_train = torch.from_numpy(x_train).float()
 y_train = torch.from_numpy(y_train).float()
@@ -116,13 +118,27 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_7 = active_ids.copy()
     active_ids_8 = active_ids.copy()
     active_ids_9 = active_ids.copy()
+    active_ids_10 = active_ids.copy()
+
+    start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_10, model_args)
+    start.train()
+    mutau_[k,0] = start.evaluate(x_test, y_test)
+    c_mutau_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
+    for i in trange(1,n_rounds, desc='murho'):
+        q_ids = start.query(query_size)
+        active_ids_10[q_ids] = True
+        #visual(active_ids_8, start, i, "murho_"+str(k))
+        start.update(active_ids_10)
+        start.train()
+        mutau_[k,i] = start.evaluate(x_test, y_test)
+        c_mutau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
+    del start
+    gc.collect()
 
     start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_8, model_args)
     start.train()
     murho_[k,0] = start.evaluate(x_test, y_test)
     c_murho_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-    #print(results[k,0])
-    
     for i in trange(1,n_rounds, desc='murho'):
         q_ids = start.query(query_size)
         active_ids_8[q_ids] = True
@@ -271,7 +287,8 @@ a = {'random': random,
     'pi':pi_,
     'rho':rho_,
     'tau':tau_,
-    'murho':murho_}
+    'murho':murho_,
+    'mutatu': mutau_}
 
 with open('results/' + dataset + 'long_filename.pickle', 'wb') as handle:
     pickle.dump(a, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -284,7 +301,8 @@ a = {'random': c_random,
     'pi':c_pi_,
     'rho':c_rho_,
     'tau':c_tau_,
-    'murho':c_murho_}
+    'murho':c_murho_,
+    'mutatu': c_mutau_}
 
 with open('results/' + dataset + '_censored_filename.pickle', 'wb') as handle:
     pickle.dump(a, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -301,6 +319,7 @@ plt.plot(np.mean(pi_,axis=0),'-.', label='pi_')
 plt.plot(np.mean(rho_,axis=0),'-.', label='rho_')
 plt.plot(np.mean(tau_,axis=0),'-.', label='tau_')
 plt.plot(np.mean(murho_,axis=0),'-.', label='murho_')
+plt.plot(np.mean(mutau_,axis=0),'-.', label='mutau_')
 plt.legend()
 #plt.ylim(None, 0.5)
 plt.savefig("figures/"+dataset + "results.png")
@@ -317,6 +336,7 @@ plt.plot(np.mean(c_pi_,axis=0),'-.', label='pi_')
 plt.plot(np.mean(c_rho_,axis=0),'-.', label='rho_')
 plt.plot(np.mean(c_tau_,axis=0),'-.', label='tau_')
 plt.plot(np.mean(c_murho_,axis=0),'-.', label='murho_')
+plt.plot(np.mean(c_mutau_,axis=0),'-.', label='mutau_')
 plt.legend(loc='lower right')
 plt.savefig("figures/"+dataset+ "results_censoring.png")
 plt.close()
