@@ -46,7 +46,7 @@ def visual(active_ids, start, index, name):
     plt.close()
 
 
-dataset = "sklearn"
+dataset = "gsbg"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'hidden_size':[100,100]}
@@ -60,15 +60,15 @@ model_args = {'in_features': x_train.shape[-1],
 
 
 ## Params sklearn
-init_size = 25
-query_size = 5
-n_rounds = 20 # The first iteration is silent is silent.
-trials = 1
-
-#init_size = 146
+#init_size = 15
 #query_size = 5
 #n_rounds = 30 # The first iteration is silent is silent.
-#trials = 1
+#trials = 10
+
+init_size = 146
+query_size = 10
+n_rounds = 20 # The first iteration is silent is silent.
+trials = 1
 print(x_train.shape)
 print(y_train.shape)
 print(censoring_train.shape)
@@ -120,7 +120,7 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_9 = active_ids.copy()
     active_ids_10 = active_ids.copy()
 
-    start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args)
+    start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
     c_mutau_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -182,7 +182,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
     '''
-    start = pi.PiSampling(x_train, y_train, censoring_train, active_ids_5, model_args)
+    start = pi.PiSampling(x_train, y_train, censoring_train, active_ids_5, model_args, random_seed=k)
     start.train()
     pi_[k,0] = start.evaluate(x_test, y_test)
     c_pi_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])

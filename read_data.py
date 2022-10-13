@@ -94,15 +94,15 @@ def get_ds3():
 def get_gsbg():
     f1 = h5py.File("data/gbsg_cancer_train_test.h5",'r+')   
     x_train = f1['train']['x']
-    y_orig = f1['train']['t']
+    y_train = f1['train']['t']
     censoring_train = f1['train']['e']
     x_test = f1['test']['x']
     y_test = f1['test']['t']
-    y_train = (y_orig - np.mean(y_orig))/(np.std(y_orig))
-    y_test = (y_test - np.mean(y_orig))/(np.std(y_orig))
+    #y_train = (y_orig - np.mean(y_orig))/(np.std(y_orig))
+    #y_test = (y_test - np.mean(y_orig))/(np.std(y_orig))
     censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_orig)))
-    return x_train, y_train, censoring_train, x_test, y_test
+    print(sum(censoring_train)/(len(y_train)))
+    return x_train.value, y_train.value, censoring_train, x_test.value, y_test.value
 
 def get_support():
     f1 = h5py.File("data/support_train_test.h5",'r+')   
@@ -146,7 +146,7 @@ def get_whas():
 
 def get_sklearn():
     rs = np.random.RandomState(seed=10)
-    ns = 125 + 1000
+    ns = 10000 + 1000
     nf = 10
     #x, y_orig, coef = make_regression(n_samples=ns, n_features=nf, coef=True, noise=0.0, random_state=rs)
     #x = pd.DataFrame(x)

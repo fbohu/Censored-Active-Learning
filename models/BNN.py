@@ -198,12 +198,6 @@ class BayesianNN(BayesianModule):
         input = F.leaky_relu(self.fc1_drop(self.fc1(input)))
         input = F.leaky_relu(self.fc2_drop(self.fc2(input)))
         input = F.leaky_relu(self.fc3_drop(self.fc3(input)))
-        #input = F.sigmoid(self.fc1_drop(self.fc1(input)))
-        #input = F.sigmoid(self.fc2_drop(self.fc2(input)))
-        #input = F.sigmoid(self.fc3_drop(self.fc3(input)))
-        #input = F.leaky_relu(self.fc4_drop(self.fc4(input)))
-        #input = F.relu(self.fc1(input))
-        #input = F.relu(self.fc2(input))
         input = self.fc5(input)
 
         return input
@@ -212,7 +206,7 @@ class BayesianNN(BayesianModule):
     def _train(self, x_data, y_data, censored):
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
         
-        epochs = 2500
+        epochs = 1000
         optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
         tmp = torch.tensor(tmp).float()
         #x_data = torch.tensor(x_data).float().clone().detach()

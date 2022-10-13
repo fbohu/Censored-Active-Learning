@@ -7,8 +7,8 @@ from scipy import stats
 import torch
 
 class PiSampling(Strategy):
-    def __init__(self, X, Y, Cens,  ids, net_args):
-        super(PiSampling, self).__init__(X, Y, Cens,  ids, net_args)
+    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
+        super(PiSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed=random_seed)
 
     def get_scores(self, n):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
