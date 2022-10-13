@@ -60,10 +60,10 @@ model_args = {'in_features': x_train.shape[-1],
 
 
 ## Params sklearn
-init_size = 20
+init_size = 25
 query_size = 5
-n_rounds = 50 # The first iteration is silent is silent.
-trials = 5
+n_rounds = 20 # The first iteration is silent is silent.
+trials = 1
 
 #init_size = 146
 #query_size = 5

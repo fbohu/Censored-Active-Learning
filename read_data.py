@@ -146,7 +146,7 @@ def get_whas():
 
 def get_sklearn():
     rs = np.random.RandomState(seed=10)
-    ns = 10000 + 1000
+    ns = 125 + 1000
     nf = 10
     #x, y_orig, coef = make_regression(n_samples=ns, n_features=nf, coef=True, noise=0.0, random_state=rs)
     #x = pd.DataFrame(x)
@@ -154,7 +154,7 @@ def get_sklearn():
     #x, y_orig = make_regression(n_samples=ns, n_features=nf, coef=False, noise=1.0, random_state=rs)
     x, y_orig = make_friedman1(n_samples=ns, n_features=6, noise=0.0, random_state=rs)
 
-    y_orig = y_orig + np.random.normal(loc=0, scale=0.01*abs(x[:,0]+x[:,2]), size=x.shape[0]) ## Homo noise
+    y_orig = y_orig + np.random.normal(loc=0, scale=0.1*abs(x[:,2]), size=x.shape[0]) ## Homo noise
     #y_orig = (y_orig - np.min(y_orig))/(np.max(y_orig)-np.min(y_orig))
     y_orig = (y_orig - np.mean(y_orig))/(np.std(y_orig))
     y = y_orig.copy()
