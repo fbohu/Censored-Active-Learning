@@ -17,7 +17,7 @@ class MuTauSampling(Strategy):
         mu_1  = samples[:,:,2]
         pt = (mu_0 >= mu_1).float().mean(1)
         t = torch.bernoulli(pt)
-        scores =  mu_tau(mu_0, mu_1, t=t,  pt=pt, temperature=0.25)
+        scores =  mu_tau(mu_0, mu_1, t=t,  pt=pt, temperature=0.5)
         return scores.detach().numpy(), idxs_unlabeled
         '''  
 

@@ -154,15 +154,14 @@ def get_sklearn():
     #x, y_orig = make_regression(n_samples=ns, n_features=nf, coef=False, noise=1.0, random_state=rs)
     x, y_orig = make_friedman1(n_samples=ns, n_features=6, noise=0.0, random_state=rs)
 
-    n_quantiles = 3 # two-thirds of the data is truncated
-    quantile = 100/float(n_quantiles)
-    upper = np.percentile(y_orig, (n_quantiles - 1) * quantile)
-    right = y_orig > upper
-
     y_orig = y_orig + np.random.normal(loc=0, scale=0.01*abs(x[:,0]+x[:,2]), size=x.shape[0]) ## Homo noise
     #y_orig = (y_orig - np.min(y_orig))/(np.max(y_orig)-np.min(y_orig))
     y_orig = (y_orig - np.mean(y_orig))/(np.std(y_orig))
     y = y_orig.copy()
+    n_quantiles = 3 # two-thirds of the data is truncated
+    quantile = 100/float(n_quantiles)
+    upper = np.percentile(y, (n_quantiles - 1) * quantile)
+    right = y > upper
     censoring = np.zeros((ns,))
     censoring[right] = 1
     y = np.clip(y, a_min=None, a_max=upper)

@@ -60,10 +60,10 @@ model_args = {'in_features': x_train.shape[-1],
 
 
 ## Params sklearn
-init_size = 50
+init_size = 20
 query_size = 5
 n_rounds = 50 # The first iteration is silent is silent.
-trials = 1
+trials = 5
 
 #init_size = 146
 #query_size = 5
@@ -134,7 +134,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_mutau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_8, model_args)
     start.train()
     murho_[k,0] = start.evaluate(x_test, y_test)
@@ -149,7 +149,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_murho_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = tau.TauSampling(x_train, y_train, censoring_train, active_ids_7, model_args, random_seed=k)
     start.train()
     tau_[k,0] = start.evaluate(x_test, y_test)
@@ -165,7 +165,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_tau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = rho.RhoSampling(x_train, y_train, censoring_train, active_ids_6, model_args)
     start.train()
     rho_[k,0] = start.evaluate(x_test, y_test)
@@ -181,7 +181,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_rho_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = pi.PiSampling(x_train, y_train, censoring_train, active_ids_5, model_args)
     start.train()
     pi_[k,0] = start.evaluate(x_test, y_test)
@@ -197,7 +197,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_pi_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-        
+    '''    
     start = mupi.MuPiSampling(x_train, y_train, censoring_train, active_ids_4, model_args)
     start.train()
     mupi_[k,0] = start.evaluate(x_test, y_test)
@@ -229,7 +229,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_mu_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = censbald.CensBaldSampling(x_train, y_train, censoring_train, active_ids_9, model_args, random_seed=k)
     start.train()
     cbald_[k,0] = start.evaluate(x_test, y_test)
