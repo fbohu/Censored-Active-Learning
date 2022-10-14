@@ -180,7 +180,7 @@ class ConsistentMCDropout2d(_ConsistentMCDropout):
 
 
 class BayesianNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.50, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, lr_rate = 3e-4):
         super().__init__()
 
         self.fc1 = nn.Linear(in_dims, 128)
@@ -206,7 +206,7 @@ class BayesianNN(BayesianModule):
     def _train(self, x_data, y_data, censored):
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
         
-        epochs = 1000
+        epochs = 2000
         optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
         tmp = torch.tensor(tmp).float()
         #x_data = torch.tensor(x_data).float().clone().detach()

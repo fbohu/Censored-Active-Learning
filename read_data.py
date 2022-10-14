@@ -87,9 +87,9 @@ def get_ds2():
     return split_data(ds2['X'].T, -1*ds2['y'], -1*ds2['y_star'],cens,test_size=1000, verbose = True)
 
 def get_ds3():
-    ds3 = make_ds3(True, 500, 1)
+    ds3 = make_ds3(True, 10000+1000, 1)
     cens = (-1*ds3['y_star'] > -1*ds3['y'])+0
-    return split_data(ds3['X'].T, -1*ds3['y'], -1*ds3['y_star'],cens,test_size=200, verbose = True)
+    return split_data(ds3['X'].T, -1*ds3['y'], -1*ds3['y_star'],cens,test_size=1000, verbose = True)
 
 def get_gsbg():
     f1 = h5py.File("data/gbsg_cancer_train_test.h5",'r+')   
@@ -102,7 +102,7 @@ def get_gsbg():
     #y_test = (y_test - np.mean(y_orig))/(np.std(y_orig))
     censoring_train = np.logical_not(censoring_train).astype(int)
     print(sum(censoring_train)/(len(y_train)))
-    return x_train.value, y_train.value, censoring_train, x_test.value, y_test.value
+    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
 
 def get_support():
     f1 = h5py.File("data/support_train_test.h5",'r+')   
