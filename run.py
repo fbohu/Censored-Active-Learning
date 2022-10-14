@@ -46,29 +46,29 @@ def visual(active_ids, start, index, name):
     plt.close()
 
 
-dataset = "sklearn"
+dataset = "gsbg"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'hidden_size':[100,100]}
 
 
-## Params ds1
+## Params ds2
 #init_size = 5
 #query_size = 3
 #n_rounds = 25 # The first iteration is silent is silent.
-#trials = 10
+#trials = 3
 
 
 ## Params sklearn
-init_size = 10
-query_size = 10
-n_rounds = 30 # The first iteration is silent is silent.
-trials = 10
-
-#init_size = 246
+#init_size = 10
 #query_size = 10
-#n_rounds = 130 # The first iteration is silent is silent.
-#trials = 3
+#n_rounds = 30 # The first iteration is silent is silent.
+#trials = 10
+
+init_size = 46
+query_size = 5
+n_rounds = 30 # The first iteration is silent is silent.
+trials = 1
 print(x_train.shape)
 print(y_train.shape)
 print(censoring_train.shape)

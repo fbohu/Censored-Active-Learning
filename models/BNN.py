@@ -180,7 +180,7 @@ class ConsistentMCDropout2d(_ConsistentMCDropout):
 
 
 class BayesianNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.15, lr_rate = 3e-4):
         super().__init__()
 
         self.fc1 = nn.Linear(in_dims, 128)
