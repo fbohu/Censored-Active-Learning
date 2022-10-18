@@ -46,29 +46,35 @@ def visual(active_ids, start, index, name):
     plt.close()
 
 
-dataset = "gsbg"
+dataset = "sklearn"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'hidden_size':[100,100]}
 
 
 ## Params ds2
-#init_size = 5
+#init_size = 10
 #query_size = 3
 #n_rounds = 25 # The first iteration is silent is silent.
 #trials = 3
 
+## Params synth
+#init_size = 50
+#query_size = 10
+#n_rounds = 50 # The first iteration is silent is silent.
+#trials = 3
+
 
 ## Params sklearn
-#init_size = 10
-#query_size = 10
-#n_rounds = 30 # The first iteration is silent is silent.
-#trials = 10
+init_size = 150
+query_size = 10
+n_rounds = 20 # The first iteration is silent is silent.
+trials = 3
 
-init_size = 46
-query_size = 5
-n_rounds = 30 # The first iteration is silent is silent.
-trials = 1
+#init_size = 25
+#query_size = 5
+#n_rounds = 100 # The first iteration is silent is silent.
+#trials = 3
 print(x_train.shape)
 print(y_train.shape)
 print(censoring_train.shape)
@@ -119,7 +125,7 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_8 = active_ids.copy()
     active_ids_9 = active_ids.copy()
     active_ids_10 = active_ids.copy()
-
+    '''
     start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
@@ -134,7 +140,6 @@ for k in trange(0, trials, desc='number of trials'):
         c_mutau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-    '''
     start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_8, model_args)
     start.train()
     murho_[k,0] = start.evaluate(x_test, y_test)
@@ -181,7 +186,6 @@ for k in trange(0, trials, desc='number of trials'):
         c_rho_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-    '''
     start = pi.PiSampling(x_train, y_train, censoring_train, active_ids_5, model_args, random_seed=k)
     start.train()
     pi_[k,0] = start.evaluate(x_test, y_test)
@@ -197,7 +201,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_pi_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-    '''    
+ 
     start = mupi.MuPiSampling(x_train, y_train, censoring_train, active_ids_4, model_args)
     start.train()
     mupi_[k,0] = start.evaluate(x_test, y_test)
@@ -313,13 +317,13 @@ plt.figure(figsize=(16,8))
 plt.plot(np.mean(random, axis=0),'-.', label='Random', linewidth=3)
 plt.plot(np.mean(bald_,axis=0),'-.', label='Bald')
 plt.plot(np.mean(cbald_,axis=0),'-.', label='cBald')
-plt.plot(np.mean(mu_,axis=0),'-.', label='mu_')
-plt.plot(np.mean(mupi_,axis=0),'-.', label='mupi_')
-plt.plot(np.mean(pi_,axis=0),'-.', label='pi_')
-plt.plot(np.mean(rho_,axis=0),'-.', label='rho_')
+#plt.plot(np.mean(mu_,axis=0),'-.', label='mu_')
+#plt.plot(np.mean(mupi_,axis=0),'-.', label='mupi_')
+#plt.plot(np.mean(pi_,axis=0),'-.', label='pi_')
+#plt.plot(np.mean(rho_,axis=0),'-.', label='rho_')
 plt.plot(np.mean(tau_,axis=0),'-.', label='tau_')
-plt.plot(np.mean(murho_,axis=0),'-.', label='murho_')
-plt.plot(np.mean(mutau_,axis=0),'-.', label='mutau_')
+#plt.plot(np.mean(murho_,axis=0),'-.', label='murho_')
+#plt.plot(np.mean(mutau_,axis=0),'-.', label='mutau_')
 plt.legend()
 #plt.ylim(None, 0.5)
 plt.savefig("figures/"+dataset + "results.png")
@@ -330,13 +334,13 @@ plt.figure(figsize=(16,8))
 plt.plot(np.mean(c_random,axis=0),'-.', label='Random', linewidth=3)
 plt.plot(np.mean(c_bald_,axis=0),'-.', label='Bald')
 plt.plot(np.mean(c_cbald_,axis=0),'-.', label='cBald')
-plt.plot(np.mean(c_mu_,axis=0),'-.', label='mu_')
-plt.plot(np.mean(c_mupi_,axis=0),'-.', label='mupi_')
-plt.plot(np.mean(c_pi_,axis=0),'-.', label='pi_')
-plt.plot(np.mean(c_rho_,axis=0),'-.', label='rho_')
+#plt.plot(np.mean(c_mu_,axis=0),'-.', label='mu_')
+#plt.plot(np.mean(c_mupi_,axis=0),'-.', label='mupi_')
+#plt.plot(np.mean(c_pi_,axis=0),'-.', label='pi_')
+#plt.plot(np.mean(c_rho_,axis=0),'-.', label='rho_')
 plt.plot(np.mean(c_tau_,axis=0),'-.', label='tau_')
-plt.plot(np.mean(c_murho_,axis=0),'-.', label='murho_')
-plt.plot(np.mean(c_mutau_,axis=0),'-.', label='mutau_')
+#plt.plot(np.mean(c_murho_,axis=0),'-.', label='murho_')
+#plt.plot(np.mean(c_mutau_,axis=0),'-.', label='mutau_')
 plt.legend(loc='lower right')
 plt.savefig("figures/"+dataset+ "results_censoring.png")
 plt.close()

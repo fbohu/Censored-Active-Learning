@@ -5,7 +5,7 @@ import scipy.stats
 import torch
 
 class Strategy:
-    def __init__(self, X, Y, Cens,  ids, net_args, random_seed = 123, beta = 1.0):
+    def __init__(self, X, Y, Cens,  ids, net_args, random_seed = 123, dropout_p=0.50, beta = 1.0):
         self.X = X
         self.Y = Y
         self.Cens = Cens
@@ -14,6 +14,7 @@ class Strategy:
         self.beta = beta
         #tf.random.set_seed(123) # set model seed.
         torch.manual_seed(random_seed)
+        self.dropout_p = dropout_p
         self.net = self.create_model()
 
         self.n_pool = Y.shape[0]
@@ -60,7 +61,7 @@ class Strategy:
         '''
         # Clear Keras backend
     
-        return BNN.BayesianNN(self.net_args['in_features'], 1, 0)
+        return BNN.BayesianNN(self.net_args['in_features'], 1, 0, dropout_p=self.dropout_p)
         #return DenseMCDropoutNetwork.DenseMCDropoutNetwork(self.net_args['in_features'],
         #                                                self.net_args['hidden_size'],
          #                                               input_normalizer)

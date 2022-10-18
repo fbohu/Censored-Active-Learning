@@ -8,7 +8,7 @@ from scipy import stats
 import torch
 
 class TauSampling(Strategy):
-    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
+    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123, dropout_p=0.25): 
         super(TauSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed)
 
     def get_scores(self, n):
