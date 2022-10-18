@@ -61,7 +61,12 @@ class Strategy:
         '''
         # Clear Keras backend
     
-        return BNN.BayesianNN(self.net_args['in_features'], 1, 0, dropout_p=self.dropout_p)
+        return BNN.BayesianNN(self.net_args['in_features'],
+                            self.net_args['out_features'],
+                            self.net_args['hidden_size'],
+                            dropout_p=self.net_args['dropout_p'],
+                            epochs = self.net_args['epochs'],
+                            lr_rate =self.net_args['lr_rate'])
         #return DenseMCDropoutNetwork.DenseMCDropoutNetwork(self.net_args['in_features'],
         #                                                self.net_args['hidden_size'],
          #                                               input_normalizer)

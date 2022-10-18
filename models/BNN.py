@@ -180,45 +180,66 @@ class ConsistentMCDropout2d(_ConsistentMCDropout):
 
 
 class BayesianNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25,epochs = 500, lr_rate = 3e-4):
         super().__init__()
 
-        self.fc1 = nn.Linear(in_dims, 128)
-        self.fc1_drop = ConsistentMCDropout(p=dropout_p)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc2_drop = ConsistentMCDropout(p=dropout_p)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3_drop = ConsistentMCDropout(p=dropout_p)
-        self.fc3 = nn.Linear(128, 128)
+        #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device= 'cpu'
+        self.epochs = epochs
+        self.lr = lr_rate
+        layers = []
+        for i, dims  in enumerate(hidden_dims):
+            if i ==0:
+                layers.append(nn.Linear(in_dims, dims))
+                layers.append(nn.LeakyReLU())
+                layers.append(ConsistentMCDropout(p=dropout_p))
+            else:
+                layers.append(nn.Linear(dims, dims))
+                layers.append(nn.LeakyReLU())
+                layers.append(ConsistentMCDropout(p=dropout_p))
+                
+        ## Remove last fully connected
+        layers = layers[:-1]
+        layers.append(nn.Linear(dims, out_dims))
+        self.net = nn.Sequential(*layers)
+            
+        #self.fc1_drop = ConsistentMCDropout(p=dropout_p)
+        #self.fc2 = nn.Linear(128, 128)
+        #self.fc2_drop = ConsistentMCDropout(p=dropout_p)
+        #self.fc2 = nn.Linear(128, 128)
+        #self.fc3_drop = ConsistentMCDropout(p=dropout_p)
+        #self.fc3 = nn.Linear(128, 128)
         #self.fc4_drop = ConsistentMCDropout(p=dropout_p)
         #self.fc4 = nn.Linear(128, 128)
-        self.fc5 = nn.Linear(128, 4)
+        #self.fc5 = nn.Linear(128, 4)
 
     def mc_forward_impl(self, input: torch.Tensor):
-        input = F.leaky_relu(self.fc1_drop(self.fc1(input)))
-        input = F.leaky_relu(self.fc2_drop(self.fc2(input)))
-        input = F.leaky_relu(self.fc3_drop(self.fc3(input)))
-        input = self.fc5(input)
+        #input = F.leaky_relu(self.fc1_drop(self.fc1(input)))
+        #input = F.leaky_relu(self.fc2_drop(self.fc2(input)))
+        #input = F.leaky_relu(self.fc3_drop(self.fc3(input)))
+        #input = self.fc5(input)
+        output = self.net(input)
 
-        return input
+        return output
 
 
     def _train(self, x_data, y_data, censored):
+        self.to(self.device)
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
         
-        epochs = 2000
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+        #optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
         tmp = torch.tensor(tmp).float()
         #x_data = torch.tensor(x_data).float().clone().detach()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
-        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
         
         self.train()
 
-        for i in range(0, epochs):
+        for i in range(0, self.epochs):
             for _, (data, target) in enumerate(train_dataloader):
-                data = data#.to(device=device)
-                target = target#.to(device=device)
+                data = data.to(device=self.device, non_blocking=True)
+                target = target.to(device=self.device, non_blocking=True)
                 optimizer.zero_grad()
                 prediction = self(data, k=1).squeeze(1)
                 #loss = combined_tobit(target, prediction)
@@ -229,6 +250,7 @@ class BayesianNN(BayesianModule):
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
                 optimizer.step()
 
+        self.cpu() 
         self.eval()
         #opt= tf.keras.optimizers.Adam(learning_rate=3e-3, clipnorm=1)
 
@@ -243,14 +265,12 @@ class BayesianNN(BayesianModule):
         tmp = np.concatenate((y_data[:,np.newaxis], y_data[:,np.newaxis]), axis=1) # quick hack to fit dimensions.
         tmp = torch.tensor(tmp).float()
         preds = self.predict(x_data)
-        #preds = np.mean(samples
         return nll(tmp, preds[:,:2])
-        #return tf.reduce_mean((y_data-preds[:,0])**2)
 
     @torch.no_grad()
     def sample(self, x, k= 20):
+        self.to(self.device)
         self.eval()
-        #samples = self(x,k =20)
         
         dataset = torch.utils.data.TensorDataset(x)
         train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
@@ -262,11 +282,14 @@ class BayesianNN(BayesianModule):
 
             lower = i * train_dataloader.batch_size
             upper = min(lower + train_dataloader.batch_size, N)
-            samples[lower:upper].copy_(self(data, k))#, non_blocking=True)
-        return samples.detach()
+            samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+        
+        self.cpu()
+        return samples.cpu().detach()
     
     @torch.no_grad()
     def predict(self, x, k=20):
+        self.to(self.device)
         self.eval()
         dataset = torch.utils.data.TensorDataset(x)
         train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
@@ -278,7 +301,8 @@ class BayesianNN(BayesianModule):
 
             lower = i * train_dataloader.batch_size
             upper = min(lower + train_dataloader.batch_size, N)
-            samples[lower:upper].copy_(self(data, k))#, non_blocking=True)
+            samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
         #samples = self(x, k=20)
-        return samples.detach().mean(1)
+        self.cpu()
+        return samples.cpu().detach().mean(1)
         

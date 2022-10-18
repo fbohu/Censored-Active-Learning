@@ -3,7 +3,7 @@ os.environ['TT_CUDNN_DETERMINISTIC'] = '1'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from models import DenseMCDropoutNetwork
+#from models import DenseMCDropoutNetwork
 from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald
 from models.losses import tobit_nll
 from read_data import *
@@ -49,7 +49,12 @@ def visual(active_ids, start, index, name):
 dataset = "sklearn"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
-            'hidden_size':[100,100]}
+            'out_features': 4,
+            'hidden_size':[128,128,128],
+            'dropout_p': 0.25,
+            'epochs': 500,
+            'lr_rate':1e-3
+            'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
 
 
 ## Params ds2

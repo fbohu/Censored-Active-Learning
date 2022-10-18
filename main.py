@@ -40,7 +40,6 @@ def main(args):
         for i in range(1,args.n_rounds):
             q_ids = start.query(query_size)
             active_ids[q_ids] = True
-            #visual(active_ids_8, start, i, "murho_")
             start.update(active_ids)
             start.train()
             model_performance[k,i] = start.evaluate(x_test, y_test)
