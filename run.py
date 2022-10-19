@@ -46,14 +46,14 @@ def visual(active_ids, start, index, name):
     plt.close()
 
 
-dataset = "sklearn"
+dataset = "whas"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'out_features': 4,
             'hidden_size':[128,128,128],
             'dropout_p': 0.25,
             'epochs': 500,
-            'lr_rate':1e-3
+            'lr_rate':1e-3,
             'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
 
 
@@ -71,15 +71,15 @@ model_args = {'in_features': x_train.shape[-1],
 
 
 ## Params sklearn
-init_size = 150
-query_size = 10
-n_rounds = 20 # The first iteration is silent is silent.
-trials = 3
-
-#init_size = 25
-#query_size = 5
-#n_rounds = 100 # The first iteration is silent is silent.
+#init_size = 150
+#query_size = 10
+#n_rounds = 20 # The first iteration is silent is silent.
 #trials = 3
+
+init_size = 25
+query_size = 5
+n_rounds = 100 # The first iteration is silent is silent.
+trials = 3
 print(x_train.shape)
 print(y_train.shape)
 print(censoring_train.shape)
