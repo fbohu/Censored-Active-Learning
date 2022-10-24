@@ -9,14 +9,19 @@ import torch
 
 class TauSampling(Strategy):
     def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123, dropout_p=0.25): 
-        super(TauSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed)
+        super(TauSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed=random_seed)
 
     def get_scores(self, n):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
         samples = self.net.sample(self.X[idxs_unlabeled])
         mu_0  = samples[:,:,0]
         mu_1  = samples[:,:,2]
-        scores = torch.log((mu_1 - mu_0).var(1)+1e-7)
+        #scores = torch.log((mu_1 - mu_0).var(1)+1e-7)
+        #pt = (mu_0 >= mu_1).float().mean(1)
+        pt = (mu_0 <= mu_1).float().mean(1)
+        #t = torch.zeros_like(pt) # zeros to make it use m0
+        t = (pt>0.5).float()
+        scores = tau(mu_0, mu_1, t, pt, temperature=1.0)
         return scores.detach().numpy(), idxs_unlabeled
         '''  
 

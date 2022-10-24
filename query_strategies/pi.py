@@ -15,9 +15,12 @@ class PiSampling(Strategy):
         samples = self.net.sample(self.X[idxs_unlabeled])
         mu_0  = samples[:,:,0]
         mu_1  = samples[:,:,2]
-        pt = (mu_0 >= mu_1).float().mean(1)
-        t = torch.bernoulli(pt)
-        scores = pi(mu_0, mu_1, t=t,  pt=pt, temperature=0.25)
+        #pt = (mu_0 >= mu_1).float().mean(1)
+        pt = (mu_0 <= mu_1).float().mean(1)
+        #t = torch.bernoulli(pt)
+        #t = torch.zeros_like(pt)
+        t = (pt>0.5).float()
+        scores = pi(mu_0, mu_1, t=t,  pt=pt, temperature=1.0)
         return scores.detach().numpy(), idxs_unlabeled
         
         #t = np.random.binomial(1, pt).astype("float32")

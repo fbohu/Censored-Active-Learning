@@ -7,17 +7,19 @@ from scipy import stats
 import torch
 
 class MuRhoSampling(Strategy):
-    def __init__(self, X, Y, Cens,  ids, net_args):
-        super(MuRhoSampling, self).__init__(X, Y, Cens,  ids, net_args)
+    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
+        super(MuRhoSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed=random_seed)
 
     def get_scores(self, n):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
         samples = self.net.sample(self.X[idxs_unlabeled]).detach()
         mu_0  = samples[:,:,0]
         mu_1  = samples[:,:,2]
-        pt = (mu_0 >= mu_1).float().mean(1)
-        t = torch.bernoulli(pt)
-        scores =  mu_rho(mu_0, mu_1, t=t,  pt=pt, temperature=0.25)
+        #pt = (mu_0 >= mu_1).float().mean(1)
+        pt = (mu_0 <= mu_1).float().mean(1)
+        #t = torch.zeros_like(pt)
+        t = (pt>0.5).float()
+        scores =  mu_rho(mu_0, mu_1, t=t,  pt=pt, temperature=1.0)
         return scores.detach().numpy(), idxs_unlabeled
         '''  
 

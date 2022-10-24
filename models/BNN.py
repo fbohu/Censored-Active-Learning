@@ -180,7 +180,7 @@ class ConsistentMCDropout2d(_ConsistentMCDropout):
 
 
 class BayesianNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25,epochs = 500, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 500, lr_rate = 3e-4):
         super().__init__()
 
         #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -232,7 +232,7 @@ class BayesianNN(BayesianModule):
         tmp = torch.tensor(tmp).float()
         #x_data = torch.tensor(x_data).float().clone().detach()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
-        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
+        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
         
         self.train()
 
