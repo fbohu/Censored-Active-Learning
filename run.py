@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 #from models import DenseMCDropoutNetwork
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald
+from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald
 from models.losses import tobit_nll
 from read_data import *
 #from datasets import get_dataset
@@ -75,12 +75,12 @@ def visual(active_ids_, start, index, name, censoring_train):
 
 
 
-dataset = "whas"
+dataset = "cbald"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'out_features': 4,
-            #'hidden_size':[128,128],
-            'hidden_size':[256,256,256],
+            'hidden_size':[128,128],
+            #'hidden_size':[256,256,256],
             'dropout_p': 0.25,
             'epochs': 500,
             'lr_rate':1e-3,
@@ -94,10 +94,10 @@ model_args = {'in_features': x_train.shape[-1],
 #trials = 1
 
 ## Params cbald
-#init_size = 10
-#query_size = 5
-#n_rounds = 60 # The first iteration is silent is silent.
-#trials = 10
+init_size = 10
+query_size = 5
+n_rounds = 30 # The first iteration is silent is silent.
+trials = 10
 
 
 ## Params synth
@@ -113,10 +113,10 @@ model_args = {'in_features': x_train.shape[-1],
 #n_rounds = 100 # The first iteration is silent is silent.
 #trials = 5
 
-init_size = 25
-query_size = 3
-n_rounds = 125#int((x_train.shape[0]-init_size)/query_size)#100 # The first iteration is silent is silent.
-trials = 5
+#init_size = 25
+#query_size = 3
+#n_rounds = 125#int((x_train.shape[0]-init_size)/query_size)#100 # The first iteration is silent is silent.
+#trials = 5
 print(n_rounds)
 print(x_train.shape)
 print(y_train.shape)
@@ -169,23 +169,24 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_8 = active_ids.copy()
     active_ids_9 = active_ids.copy()
     active_ids_10 = active_ids.copy()
-    '''
-    start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
+
+    #start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
+    start = duo_bald.DuoBaldSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
     c_mutau_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-    for i in trange(1,n_rounds, desc='mu_tau'):
+    for i in trange(1,n_rounds, desc='duo_bald'):
         q_ids = start.query(query_size)
         active_ids_10[q_ids] = True
         if (k == 0) and (dataset == 'cbald'):
-            visual(active_ids_10, start, i, "mutau_"+str(k), censoring_train)
+            visual(active_ids_10, start, i, "duo_bald_"+str(k), censoring_train)
         start.update(active_ids_10)
         start.train()
         mutau_[k,i] = start.evaluate(x_test, y_test)
         c_mutau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-    
+    '''
     start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_8, model_args, random_seed=k)
     start.train()
     murho_[k,0] = start.evaluate(x_test, y_test)

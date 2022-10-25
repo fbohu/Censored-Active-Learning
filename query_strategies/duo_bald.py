@@ -22,7 +22,7 @@ class DuoBaldSampling(Strategy):
         expected_entropy = torch.log(stds).mean(1)
         bald_cens = entropy_expected - expected_entropy
 
-        stds = 1e-5 + softplus(samples[:,:,1])
+        stds = 1e-5 + softplus(samples[:,:,3])
         
         mean_stddev_all = stds.mean(1)
         entropy_expected = torch.log(mean_stddev_all)
