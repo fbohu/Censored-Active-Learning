@@ -17,51 +17,88 @@ import torch
 import copy
 from tqdm.auto import trange
 import pickle
+import scipy
 tfd = tfp.distributions
 import gc
 
-def visual(active_ids, start, index, name):
-    mean = start.net.sample(x_test).detach()
+def visual(active_ids_, start, index, name, censoring_train):
+    means = start.net.sample(x_test).detach()
+    scores, _ = start.get_scores(5)
+
     plt.figure(figsize=(16,8))
-    plt.plot(y_test, color='black')
+    plt.plot(x_test, y_test, 'o', alpha=0.25, zorder=1)
     for i in range(0,20):
-        plt.plot(mean[i,:,0],'bo', alpha=0.01)
-        plt.plot(mean[i,:,2],'ro', alpha=0.01)
+        plt.plot(x_test, means[:,i,0],'bo', alpha=0.01, zorder=0)
+        plt.plot(x_test, means[:,i,2],'ro', alpha=0.01, zorder=0)
         #plt.plot(x, -1*samples[i,:,-1],'ro', alpha=0.01)
-    plt.plot(mean.mean(1)[:,0], label='Mean from ensemble', color='blue')
-    plt.plot(mean.mean(1)[:,2], label='Mean from ensemble', color='orange')
+    plt.plot(x_test, means.mean(1)[:,0], 'o',label='Mean from ensemble', color='blue', zorder=2)
+    plt.plot(x_test, means.mean(1)[:,2], 'o',label='Mean from ensemble', color='red', zorder=2)
     #plt.scatter(x_test, y_test,color='red')
     #plt.scatter(x, y_obs, color='black')
     #plt.scatter(x, y_cens, color='red')
-    #plt.scatter(x_train[active_ids], y_train[active_ids], color='green')
-    #plt.scatter(x_train.numpy()[q_ids], y_train.numpy()[q_ids],color='blue')
-    plt.savefig("figures/sklearn/" + name + str(index)+".png")
-    plt.close()
-    plt.figure(figsize=(16,8))
-    plt.plot(y_test,mean.mean(1)[:, 0],'o')
-    plt.plot(np.arange(-5,30,1),np.arange(-5,30,1))
-    plt.ylim(-4,4)
+    plt.scatter(x_train[active_ids_], y_train[active_ids_], color='black', zorder=3, s=50)
+    plt.scatter(x_train.numpy()[q_ids], y_train.numpy()[q_ids],color='green', zorder=3, s=100)
+    plt.ylim(-2.5, 16)
     plt.xlim(-4,4)
-    plt.savefig("figures/sklearn/scatter_" + name + str(index)+".png")
+    plt.savefig("figures/cbald/fit/fit_" + name +"_"+ str(index)+".png")
     plt.close()
+    c = censoring_train[active_ids_]
+    x_t = x_train[active_ids_].squeeze().numpy()
+    #print(c)
+    #print(x_t.shape)
+    plt.figure(figsize=(16,8))
+    plt.hist(x_t[c==0], bins=15, density=False, color='blue', alpha=0.5)
+    plt.hist(x_t[c==1], bins=15, density=False, color='red', alpha=0.5)
+    plt.axvline(x=2, c='black')
+    plt.axvline(x=0, c='black')
+    plt.axvline(x=-2, c='black')
+    plt.xlim(-5,5)
+    #plt.text(2.75, 0.5, "Very High Censoring", fontsize=12)
+    #plt.text(0.5, 0.5, "High Censoring", fontsize=12)
+    #plt.text(-1.40, 0.5, "Low Censoring", fontsize=12)
+    #plt.text(-3.25, 0.5, "No Censoring", fontsize=12)
+    #plt.plot(y_test,mean.mean(1)[:, 0],'o')
+    #plt.plot(np.arange(-5,30,1),np.arange(-5,30,1))
+    #plt.ylim(-4,4)
+    #plt.xlim(-4,4)
+    plt.savefig("figures/cbald/hist/hist_" + name +"_"+ str(index)+".png")
+    plt.close()
+    selected = list(active_ids_.copy())
+    #selected.extend(q_ids.copy())
+    plt.figure(figsize=(16,8))
+    plt.plot(x_train[~np.array(selected)], scores + scipy.stats.gumbel_r.rvs(
+            loc=0, scale=0.5, size=len(scores), random_state=None),'bo',zorder=0, alpha=0.1)
+    plt.plot(x_train[~np.array(selected)], scores, 'ro',zorder=1)
+    plt.savefig("figures/cbald/scores/scores_" + name +"_"+ str(index)+".png")
+    plt.close()
+    
 
 
-dataset = "gsbg"
+
+dataset = "cbald"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'out_features': 4,
-            'hidden_size':[128,128],
+            #'hidden_size':[128,128],
+            'hidden_size':[256,256,256],
             'dropout_p': 0.25,
             'epochs': 500,
             'lr_rate':1e-3,
             'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
 
 
-## Params ds2
+## Params ds1, ds2, ds3, 
 #init_size = 10
 #query_size = 3
 #n_rounds = 30 # The first iteration is silent is silent.
+#trials = 1
+
+## Params cbald
+#init_size = 10
+#query_size = 5
+#n_rounds = 60 # The first iteration is silent is silent.
 #trials = 10
+
 
 ## Params synth
 #init_size = 50
@@ -77,8 +114,8 @@ model_args = {'in_features': x_train.shape[-1],
 #trials = 5
 
 init_size = 25
-query_size = 5
-n_rounds = 100#int((x_train.shape[0]-init_size)/query_size)#100 # The first iteration is silent is silent.
+query_size = 3
+n_rounds = 125#int((x_train.shape[0]-init_size)/query_size)#100 # The first iteration is silent is silent.
 trials = 5
 print(n_rounds)
 print(x_train.shape)
@@ -122,6 +159,7 @@ for k in trange(0, trials, desc='number of trials'):
     #active_ids[np.random.choice(np.where((x < 3.0) | (x > 5.6))[0], init_size, replace=False)] = True
     ids_tmp = np.arange(x_train.shape[0])
     active_ids[np.random.choice(ids_tmp,init_size, replace=False)] = True
+    active_ids_1 = active_ids.copy()
     active_ids_2 = active_ids.copy()
     active_ids_3 = active_ids.copy()
     active_ids_4 = active_ids.copy()
@@ -136,17 +174,18 @@ for k in trange(0, trials, desc='number of trials'):
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
     c_mutau_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-    for i in trange(1,n_rounds, desc='murho'):
+    for i in trange(1,n_rounds, desc='mu_tau'):
         q_ids = start.query(query_size)
         active_ids_10[q_ids] = True
-        #visual(active_ids_8, start, i, "murho_"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_10, start, i, "mutau_"+str(k), censoring_train)
         start.update(active_ids_10)
         start.train()
         mutau_[k,i] = start.evaluate(x_test, y_test)
         c_mutau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    
     start = murho.MuRhoSampling(x_train, y_train, censoring_train, active_ids_8, model_args, random_seed=k)
     start.train()
     murho_[k,0] = start.evaluate(x_test, y_test)
@@ -154,14 +193,14 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='murho'):
         q_ids = start.query(query_size)
         active_ids_8[q_ids] = True
-        #visual(active_ids_8, start, i, "murho_"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_8, start, i, "murho_"+str(k), censoring_train)
         start.update(active_ids_8)
         start.train()
         murho_[k,i] = start.evaluate(x_test, y_test)
         c_murho_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
     start = tau.TauSampling(x_train, y_train, censoring_train, active_ids_7, model_args, random_seed=k)
     start.train()
     tau_[k,0] = start.evaluate(x_test, y_test)
@@ -170,14 +209,14 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='tau'):
         q_ids = start.query(query_size)
         active_ids_7[q_ids] = True
-        #visual(active_ids_7, start, i, "tau_"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_7, start, i, "tau_"+str(k), censoring_train)
         start.update(active_ids_7)
         start.train()
         tau_[k,i] = start.evaluate(x_test, y_test)
         c_tau_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
     start = rho.RhoSampling(x_train, y_train, censoring_train, active_ids_6, model_args, random_seed=k)
     start.train()
     rho_[k,0] = start.evaluate(x_test, y_test)
@@ -186,7 +225,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='rho'):
         q_ids = start.query(query_size)
         active_ids_6[q_ids] = True
-        #visual(active_ids_6, start, i, "rho_"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_6, start, i, "rho_"+str(k), censoring_train)
         start.update(active_ids_6)
         start.train()
         rho_[k,i] = start.evaluate(x_test, y_test)
@@ -202,7 +242,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='pi'):
         q_ids = start.query(query_size)
         active_ids_5[q_ids] = True
-        #visual(active_ids_5, start, i, "pi_"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_5, start, i, "pi_"+str(k), censoring_train)
         start.update(active_ids_5)
         start.train()
         pi_[k,i] = start.evaluate(x_test, y_test)
@@ -218,7 +259,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds,desc='mupi'):
         q_ids = start.query(query_size)
         active_ids_4[q_ids] = True
-        #visual(active_ids_4, start, i, "mupi"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_4, start, i, "mupi"+str(k), censoring_train)
         start.update(active_ids_4)
         start.train()
         mupi_[k,i] = start.evaluate(x_test, y_test)
@@ -234,7 +276,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds,desc='mu'):
         q_ids = start.query(query_size)
         active_ids_3[q_ids] = True
-        #visual(active_ids_3, start, i, "mu"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_3, start, i, "mu"+str(k), censoring_train)
         start.update(active_ids_3)
         start.train()
         mu_[k,i] = start.evaluate(x_test, y_test)
@@ -250,7 +293,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='cbald'):
         q_ids = start.query(query_size)
         active_ids_9[q_ids] = True
-        #visual(active_ids_9, start, i, "cbald"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_9, start, i, "cbald_"+str(k), censoring_train)
         start.update(active_ids_9)
         start.train()
         cbald_[k,i] = start.evaluate(x_test, y_test)
@@ -258,16 +302,17 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
+    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids_1, model_args, random_seed=k)
     start.train()
     bald_[k,0] = start.evaluate(x_test, y_test)
     c_bald_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     #print(results[k,0])
     for i in trange(1,n_rounds, desc='bald'):
         q_ids = start.query(query_size)
-        active_ids[q_ids] = True
-        #visual(active_ids, start, i, "bald"+str(k))
-        start.update(active_ids)
+        active_ids_1[q_ids] = True
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_1, start, i, "bald_"+str(k), censoring_train)
+        start.update(active_ids_1)
         start.train()
         bald_[k,i] = start.evaluate(x_test, y_test)
         c_bald_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -282,7 +327,8 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='random'):
         q_ids = start.query(query_size)
         active_ids_2[q_ids] = True
-        #visual(active_ids_2, start, i, "random"+str(k))
+        if (k == 0) and (dataset == 'cbald'):
+            visual(active_ids_2, start, i, "random_"+str(k), censoring_train)
         start.update(active_ids_2)
         start.train()
         random[k,i] = start.evaluate(x_test, y_test)
@@ -302,7 +348,7 @@ a = {'random': random,
     'murho':murho_,
     'mutatu': mutau_}
 
-with open('results/' + dataset + 'long_filename.pickle', 'wb') as handle:
+with open('results/' + dataset + '_filename.pickle', 'wb') as handle:
     pickle.dump(a, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 a = {'random': c_random,

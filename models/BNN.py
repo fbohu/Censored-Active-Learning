@@ -191,11 +191,13 @@ class BayesianNN(BayesianModule):
         for i, dims  in enumerate(hidden_dims):
             if i ==0:
                 layers.append(nn.Linear(in_dims, dims))
-                layers.append(nn.LeakyReLU())
+                #layers.append(nn.LeakyReLU())
+                layers.append(nn.GELU())
                 layers.append(ConsistentMCDropout(p=dropout_p))
             else:
                 layers.append(nn.Linear(dims, dims))
-                layers.append(nn.LeakyReLU())
+                layers.append(nn.GELU())
+                #layers.append(nn.LeakyReLU())
                 layers.append(ConsistentMCDropout(p=dropout_p))
                 
         ## Remove last fully connected

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import copy
 import h5py
+import torch
 from data.synth import *
 from sklearn.datasets import make_regression, make_friedman1
 
@@ -26,6 +27,8 @@ def get_dataset(name):
         return get_whas()
     elif name == 'sklearn':
         return get_sklearn()
+    elif name == 'cbald':
+        return get_causalbad()
         
 
 
@@ -201,3 +204,24 @@ def get_sklearn():
     censoring[right] = 1
     y = np.clip(y, a_min=None, a_max=upper)
     return split_data(x, y, y_orig, censoring, test_size = 1000, verbose = True)
+
+
+def get_causalbad():
+    n = 1000+10000
+    x_t = np.random.normal(0, 1, size=n)
+    t = np.random.binomial(size=n, n=1, p=torch.sigmoid(torch.Tensor(2*x_t+0.5)).numpy())
+    t[(t== 0) | ((t==1) & (x_t < 0.0))] = 0
+    #y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1, size=n)
+    y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1+(t*0.30*x_t)+((t-1)*0.10*x_t))
+    y_cens = y_true.copy()
+    censoring = t
+    y_cens[t==1] = y_cens[t==1]*0.7
+
+    #tmp = (censoring== 0) | ((censoring==1) & (x_t > 0.0))
+    #y_true = y_true[tmp]
+    #y_cens = y_cens[tmp]
+    #x_t = x_t[tmp]
+    #censoring = censoring[tmp]
+    #n = x_t.shape[0]
+    x = x_t.reshape(n,1)
+    return split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)

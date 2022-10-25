@@ -30,7 +30,6 @@ class Strategy:
         #scores = np.log(scores)+eps
         #print(scores)
         #p = scores /scores.sum()
-
         p = scores + scipy.stats.gumbel_r.rvs(
             loc=0, scale=self.beta, size=len(scores), random_state=None,
         )
