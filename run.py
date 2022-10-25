@@ -75,7 +75,7 @@ def visual(active_ids_, start, index, name, censoring_train):
 
 
 
-dataset = "cbald"
+dataset = "whas"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': x_train.shape[-1],
             'out_features': 4,
@@ -169,7 +169,7 @@ for k in trange(0, trials, desc='number of trials'):
     active_ids_8 = active_ids.copy()
     active_ids_9 = active_ids.copy()
     active_ids_10 = active_ids.copy()
-
+    '''
     start = mutau.MuTauSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
     start.train()
     mutau_[k,0] = start.evaluate(x_test, y_test)
@@ -284,7 +284,7 @@ for k in trange(0, trials, desc='number of trials'):
         c_mu_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = censbald.CensBaldSampling(x_train, y_train, censoring_train, active_ids_9, model_args, random_seed=k)
     start.train()
     cbald_[k,0] = start.evaluate(x_test, y_test)
