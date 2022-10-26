@@ -4,6 +4,7 @@ import copy
 import h5py
 import torch
 from data.synth import *
+from sklearn import preprocessing
 from sklearn.datasets import make_regression, make_friedman1
 
 def get_dataset(name):
@@ -41,6 +42,17 @@ def split_data(x, y_cens, y_true, censoring,test_size = 100, verbose = False):
     censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
     x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
     y_test = y_true[np.isin(np.arange(x.shape[0]), test_ids)]
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_test = (x_test-means)/stds
+
+
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+
     if verbose:
         print(x_train.shape)
         print(y_train.shape)
@@ -60,7 +72,7 @@ def get_synth():
     np.random.seed(10)
     n = 10000+1000
     # Define underlying function
-    x = np.linspace(2, 6, n)
+    x = np.linspace(0, 10, n)
     y_true = 0.5*np.sin(2*x) + 2 #+ x/10
     #y_true = 0.5*x + 2
 
@@ -69,12 +81,12 @@ def get_synth():
     #y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
     y_cens = copy.deepcopy(y_obs)
 
-    cens_levl = 2.2
-    censoring = np.int32(0.5*np.sin(2*x) + 2 >cens_levl) 
+    # Select random points as censored and apply p% censoring
+    censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.2) 
     #censoring = np.random.choice(2, n, p=[0.1, 0.9])*censoring # this can be used to uncensor some.
-    p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
-    #y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
-    y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
+    p_c = np.random.uniform(low=0.20, high=0.30, size=np.sum(censoring==1))
+    y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
+    #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
 
     x = x.reshape(n,1)
     return split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
@@ -207,21 +219,15 @@ def get_sklearn():
 
 
 def get_causalbad():
-    n = 1000+10000
+    n = 2500+10000
     x_t = np.random.normal(0, 1, size=n)
     t = np.random.binomial(size=n, n=1, p=torch.sigmoid(torch.Tensor(2*x_t+0.5)).numpy())
-    t[(t== 0) | ((t==1) & (x_t < 0.0))] = 0
-    #y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1, size=n)
-    y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1+(t*0.30*x_t)+((t-1)*0.10*x_t))
+    #t[(t== 0) | ((t==1) & (x_t < -0.25))] = 0
+    y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1, size=n)
+    #y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1+(t*0.30*x_t)+((1-t)*0.10*abs(x_t)))
     y_cens = y_true.copy()
     censoring = t
     y_cens[t==1] = y_cens[t==1]*0.7
 
-    #tmp = (censoring== 0) | ((censoring==1) & (x_t > 0.0))
-    #y_true = y_true[tmp]
-    #y_cens = y_cens[tmp]
-    #x_t = x_t[tmp]
-    #censoring = censoring[tmp]
-    #n = x_t.shape[0]
     x = x_t.reshape(n,1)
-    return split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
+    return split_data(x, y_cens, y_true, censoring, test_size = 2500, verbose = True)

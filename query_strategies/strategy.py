@@ -11,9 +11,8 @@ class Strategy:
         self.Cens = Cens
         self.ids = ids
         self.net_args = net_args
-        self.beta = beta
-        #tf.random.set_seed(123) # set model seed.
-        torch.manual_seed(random_seed)
+        self.beta = 0.25
+        torch.manual_seed(123+random_seed)
         self.dropout_p = dropout_p
         self.net = self.create_model()
 
@@ -25,20 +24,18 @@ class Strategy:
     def query(self, n):
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
-
-        #eps = np.random.gumpel(loc=0.0, scale= 1/beta,size=len(scores))
-        #scores = np.log(scores)+eps
-        #print(scores)
-        #p = scores /scores.sum()
-        p = scores + scipy.stats.gumbel_r.rvs(
-            loc=0, scale=self.beta, size=len(scores), random_state=None,
-        )
-        #idx = np.argpartition(p, -n)[-n:]
-        ids_ = p.argsort()[-n:][::-1]
-        #idx = np.random.choice(
-        #    idxs_unlabeled, replace=False, p=p.squeeze(), size=n,
+        scores = np.exp(scores)
+        scores[np.isnan(scores)] = 1e-7
+        p = scores/np.sum(scores)
+        #p = scores + scipy.stats.gumbel_r.rvs(
+        #    loc=0, scale=self.beta, size=len(scores), random_state=None,
         #)
-        return idxs_unlabeled[ids_]
+        idx = np.random.choice(
+                        idxs_unlabeled, replace=False, p=p, size=n,
+                    )
+        return idx
+        #ids_ = p.argsort()[-n:][::-1]
+        #return idxs_unlabeled[ids_]
 
 
     def update(self, new_ids, reset_net = True):
@@ -51,7 +48,7 @@ class Strategy:
         self.net._train(self.X[self.ids], self.Y[self.ids], self.Cens[self.ids])
 
     def evaluate(self, x_test, y_test):
-        return self.net.evaluate(x_test, y_test)
+        return self.net.evaluate(x_test, y_test).detach().numpy()
 
     def create_model(self):
         ''' Functions that creates a network based on network arguments. 
