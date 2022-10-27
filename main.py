@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import copy
 import pickle
 import argparse
+import random
 from tqdm.auto import trange
 
 from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald, avg_bald, class_bald
