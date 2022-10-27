@@ -240,8 +240,10 @@ class BayesianNN(BayesianModule):
 
         for i in range(0, self.epochs):
             for _, (data, target) in enumerate(train_dataloader):
-                data = data.to(device=self.device, non_blocking=True)
-                target = target.to(device=self.device, non_blocking=True)
+                #data = data.to(device=self.device, non_blocking=True)
+                #target = target.to(device=self.device, non_blocking=True)
+                data = data.to(device=self.device)
+                target = target.to(device=self.device)
                 optimizer.zero_grad()
                 prediction = self(data, k=1).squeeze(1)
                 #loss = combined_tobit(target, prediction)
@@ -284,7 +286,8 @@ class BayesianNN(BayesianModule):
 
             lower = i * train_dataloader.batch_size
             upper = min(lower + train_dataloader.batch_size, N)
-            samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            #samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            samples[lower:upper].copy_(self(data.to(self.device), k))#, non_blocking=True)
         
         self.cpu()
         return samples.cpu().detach()
@@ -303,7 +306,8 @@ class BayesianNN(BayesianModule):
 
             lower = i * train_dataloader.batch_size
             upper = min(lower + train_dataloader.batch_size, N)
-            samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            #samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            samples[lower:upper].copy_(self(data.to(self.device), k))#, non_blocking=True)
         #samples = self(x, k=20)
         self.cpu()
         return samples.cpu().detach().mean(1)

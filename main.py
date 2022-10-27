@@ -45,7 +45,9 @@ def get_model(which, x_train):
             }[which]
 
 def main(args):
-        
+    np.random.seed(1) # set seet for common active ids.
+    torch.manual_seed(1)
+    random.seed(1)        
     results_path = "results/" + args.dataset + "/"
     if not os.path.exists(results_path):
         os.mkdir(results_path)
@@ -63,9 +65,6 @@ def main(args):
     np.random.seed(1) # set seet for common active ids.
     #for k in range(0, args.num_trials):
     for k in trange(0, args.num_trials, desc='number of trials'):
-        np.random.seed(k) # set seet for common active ids.
-        torch.manual_seed(k)
-        random.seed(k)        
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
