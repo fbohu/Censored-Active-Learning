@@ -1,6 +1,7 @@
 import numpy as np
-import tensorflow as tf
-from models import DenseMCDropoutNetwork, BayesianDenseNetwork, BNN
+#import tensorflow as tf
+#from models import DenseMCDropoutNetwork, BayesianDenseNetwork, BNN
+from models import BNN
 import scipy.stats
 import torch
 

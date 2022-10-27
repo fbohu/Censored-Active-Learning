@@ -3,42 +3,72 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 import pickle
+import argparse
 
-from models import DenseMCDropoutNetwork
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho
-from models.losses import tobit_nll
+from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald, avg_bald, class_bald
 from read_data import *
 
 def get_strat(which):
     return {
         'random': random_sampling.RandomSampling,
         'bald': bald.BaldSampling,
+        'cbald': censbald.CensBaldSampling,
+        'duobald': duo_bald.DuoBaldSampling,
+        'avg_bald': avg_bald.AvgBaldSampling,
+        'classbald': class_bald.ClassBaldSampling,
     }[which]
 
+def get_model(which, x_train):
+    return {'small': {'in_features': x_train.shape[-1],
+                    'out_features': 4,
+                    'hidden_size':[128,128],
+                    'dropout_p': 0.25,
+                    'epochs': 500,
+                    'lr_rate':3e-4,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+            'medium' :{'in_features': x_train.shape[-1],
+                    'out_features': 4,
+                    'hidden_size':[128,128,128],
+                    'dropout_p': 0.25,
+                    'epochs': 500,
+                    'lr_rate':3e-4,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+            'big' :{'in_features': x_train.shape[-1],
+                    'out_features': 4,
+                    'hidden_size':[128,128,128,128],
+                    'dropout_p': 0.25,
+                    'epochs': 500,
+                    'lr_rate':3e-4,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
+            }[which]
 
 def main(args):
+    results_path = "results/" + args.dataset + "/"
+    if not os.path.exists(results_path):
+        os.mkdir(results_path)
     strat = get_strat(args.query)
     x_train, y_train, censoring_train, x_test, y_test = get_dataset(args.dataset)
-    model_args = {'in_features': x_train.shape[-1],
-            'hidden_size':[16]}
+    model_args = get_model(args.model, x_train)
 
-    model_performance = np.zeros([trials, n_rounds])
-    censored = np.zeros([trials, n_rounds])
+    model_performance = np.zeros([args.num_trials, args.n_rounds])
+    censored = np.zeros([args.num_trials, args.n_rounds])
 
-
+    x_train = torch.from_numpy(x_train).float()
+    y_train = torch.from_numpy(y_train).float()
+    y_test = torch.from_numpy(y_test).float()
+    x_test = torch.from_numpy(x_test).float()
     np.random.seed(1) # set seet for common active ids.
     for k in range(0, args.num_trials):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
-        active_ids[np.random.choice(ids_tmp,init_size, replace=False)] = True
+        active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
 
-
-        start = strat(x_train, y_train, censoring_train, active_ids, model_args)
+        start = strat(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
         start.train()
         model_performance[k,0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
         for i in range(1,args.n_rounds):
-            q_ids = start.query(query_size)
+            q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)
             start.train()
@@ -48,19 +78,19 @@ def main(args):
     
     results = {'model_perf': model_performance,
                 'censored': censored}
-    with open('results/'+ args.query + "-" + dataset + '.pickle', 'wb') as handle:
+    with open(results_path + args.query + "-" + args.model + '.pickle', 'wb') as handle:
         pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
-    os.environ['TT_CUDNN_DETERMINISTIC'] = '1'
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--dataset', type=str, default='ds1')
-    parser.add_argument('--query', type=str, default='random')
-    parser.add_argument('--num_trials', type=int, default = 1)
-    parser.add_argument('--n_rounds', type=int, default = 10)
+    parser.add_argument('--dataset', type=str, default='synth')
+    parser.add_argument('--model', type=str, default='small')
+    parser.add_argument('--query', type=str, default='bald')
+    parser.add_argument('--init_size', type=int, default=10)
+    parser.add_argument('--query_size', type=int, default=5)
+    parser.add_argument('--num_trials', type=int, default = 3)
+    parser.add_argument('--n_rounds', type=int, default = 5)
 
     args = parser.parse_args()
     print(args)
