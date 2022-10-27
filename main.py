@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import copy
 import pickle
 import argparse
+from tqdm.auto import trange
 
 from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald, avg_bald, class_bald
 from read_data import *
@@ -23,26 +24,30 @@ def get_model(which, x_train):
                     'out_features': 4,
                     'hidden_size':[128,128],
                     'dropout_p': 0.25,
-                    'epochs': 500,
+                    'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
             'medium' :{'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128,128],
                     'dropout_p': 0.25,
-                    'epochs': 500,
+                    'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
             'big' :{'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128,128,128],
                     'dropout_p': 0.25,
-                    'epochs': 500,
+                    'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
             }[which]
 
 def main(args):
+    np.random.seed(1) # set seet for common active ids.
+    torch.manual_seed(1)
+    random.seed(1)
+        
     results_path = "results/" + args.dataset + "/"
     if not os.path.exists(results_path):
         os.mkdir(results_path)
@@ -58,7 +63,8 @@ def main(args):
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
     np.random.seed(1) # set seet for common active ids.
-    for k in range(0, args.num_trials):
+    #for k in range(0, args.num_trials):
+    for k in trange(0, args.num_trials, desc='number of trials'):        
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
@@ -67,7 +73,8 @@ def main(args):
         start.train()
         model_performance[k,0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-        for i in range(1,args.n_rounds):
+        #for i in range(1,args.n_rounds):
+        for i in trange(0, args.n_rounds, desc='running rounds'):        
             q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)
