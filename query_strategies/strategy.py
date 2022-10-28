@@ -26,9 +26,6 @@ class Strategy:
         scores = np.exp(scores)
         scores[np.isnan(scores)] = 1e-7
         p = scores/np.sum(scores)
-        #p = scores + scipy.stats.gumbel_r.rvs(
-        #    loc=0, scale=self.beta, size=len(scores), random_state=None,
-        #)
         idx = np.random.choice(
                         idxs_unlabeled, replace=False, p=p, size=n,
                     )
