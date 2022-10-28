@@ -1,6 +1,4 @@
 import numpy as np
-#import tensorflow as tf
-#from models import DenseMCDropoutNetwork, BayesianDenseNetwork, BNN
 from models import BNN
 import scipy.stats
 import torch
@@ -13,7 +11,7 @@ class Strategy:
         self.ids = ids
         self.net_args = net_args
         self.beta = 0.25
-        torch.manual_seed(123+random_seed)
+        torch.manual_seed(123)
         self.dropout_p = dropout_p
         self.net = self.create_model()
 

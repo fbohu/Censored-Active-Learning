@@ -7,7 +7,7 @@ import argparse
 import random
 from tqdm.auto import trange
 
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald, avg_bald, class_bald
+from query_strategies import random_sampling, bald, censbald, duo_bald, avg_bald, class_bald
 from read_data import *
 
 def get_strat(which):
@@ -45,9 +45,6 @@ def get_model(which, x_train):
             }[which]
 
 def main(args):
-    np.random.seed(1) # set seet for common active ids.
-    torch.manual_seed(1)
-    random.seed(1)        
     results_path = "results/" + args.dataset + "/"
     if not os.path.exists(results_path):
         os.mkdir(results_path)
@@ -62,19 +59,22 @@ def main(args):
     y_train = torch.from_numpy(y_train).float()
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
+
     np.random.seed(1) # set seet for common active ids.
-    #for k in range(0, args.num_trials):
+    torch.manual_seed(1)
+    random.seed(1)        
+    torch.use_deterministic_algorithms(True)
     for k in trange(0, args.num_trials, desc='number of trials'):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
-
+        print(np.where(active_ids))
         start = strat(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
         start.train()
         model_performance[k,0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
         #for i in range(1,args.n_rounds):
-        for i in trange(0, args.n_rounds, desc='running rounds'):        
+        for i in trange(1, args.n_rounds, desc='running rounds'):        
             q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)
@@ -94,10 +94,10 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='synth')
     parser.add_argument('--model', type=str, default='small')
     parser.add_argument('--query', type=str, default='bald')
-    parser.add_argument('--init_size', type=int, default=10)
-    parser.add_argument('--query_size', type=int, default=5)
-    parser.add_argument('--num_trials', type=int, default = 3)
-    parser.add_argument('--n_rounds', type=int, default = 5)
+    parser.add_argument('--init_size', type=int, default=2)
+    parser.add_argument('--query_size', type=int, default=1)
+    parser.add_argument('--num_trials', type=int, default = 2)
+    parser.add_argument('--n_rounds', type=int, default = 2)
 
     args = parser.parse_args()
     print(args)

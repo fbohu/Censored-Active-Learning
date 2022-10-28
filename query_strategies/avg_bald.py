@@ -1,7 +1,6 @@
 import numpy as np
 from .strategy import Strategy
 import matplotlib.pyplot as plt
-import tensorflow as tf
 from scipy import stats
 import torch
 
