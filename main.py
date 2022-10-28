@@ -52,8 +52,8 @@ def main(args):
     x_train, y_train, censoring_train, x_test, y_test = get_dataset(args.dataset)
     model_args = get_model(args.model, x_train)
 
-    model_performance = np.zeros([args.num_trials, args.n_rounds])
-    censored = np.zeros([args.num_trials, args.n_rounds])
+    model_performance = np.zeros([args.num_trials, args.n_rounds+1])
+    censored = np.zeros([args.num_trials, args.n_rounds+1])
 
     x_train = torch.from_numpy(x_train).float()
     y_train = torch.from_numpy(y_train).float()
@@ -74,7 +74,7 @@ def main(args):
         model_performance[k,0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
         #for i in range(1,args.n_rounds):
-        for i in trange(1, args.n_rounds, desc='running rounds'):        
+        for i in trange(1, args.n_rounds+1, desc='running rounds'):        
             q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)
