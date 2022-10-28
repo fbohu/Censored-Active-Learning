@@ -220,6 +220,7 @@ def get_sklearn():
 
 def get_causalbad():
     n = 2500+10000
+    np.random.seed(10)
     x_t = np.random.normal(0, 1, size=n)
     t = np.random.binomial(size=n, n=1, p=torch.sigmoid(torch.Tensor(2*x_t+0.5)).numpy())
     #t[(t== 0) | ((t==1) & (x_t < -0.25))] = 0
