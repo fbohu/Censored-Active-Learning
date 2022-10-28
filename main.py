@@ -68,7 +68,6 @@ def main(args):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
-        print(np.where(active_ids))
         start = strat(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
         start.train()
         model_performance[k,0] = start.evaluate(x_test, y_test)
