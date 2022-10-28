@@ -270,7 +270,7 @@ class BayesianNN(BayesianModule):
         tmp = np.concatenate((y_data[:,np.newaxis], y_data[:,np.newaxis]), axis=1) # quick hack to fit dimensions.
         tmp = torch.tensor(tmp).float()
         preds = self.predict(x_data)
-        return nll(tmp, preds[:,:2])/tmp.shape[0]
+        return nll(tmp, preds[:,:2])
 
     @torch.no_grad()
     def sample(self, x, k= 20):
