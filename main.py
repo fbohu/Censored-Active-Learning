@@ -23,7 +23,8 @@ def get_strat(which):
 def get_model(which, x_train):
     return {'small': {'in_features': x_train.shape[-1],
                     'out_features': 4,
-                    'hidden_size':[128,128],
+                    #'hidden_size':[128,128],
+                    'hidden_size':[32,32],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
