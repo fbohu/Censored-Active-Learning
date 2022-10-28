@@ -60,9 +60,9 @@ def main(args):
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
 
-    np.random.seed(1) # set seet for common active ids.
-    torch.manual_seed(1)
-    random.seed(1)        
+    np.random.seed(123) # set seet for common active ids.
+    torch.manual_seed(123)
+    random.seed(123)        
     torch.use_deterministic_algorithms(True)
     for k in trange(0, args.num_trials, desc='number of trials'):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
