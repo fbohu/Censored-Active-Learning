@@ -64,23 +64,25 @@ def main(args):
     torch.manual_seed(123)
     random.seed(123)        
     torch.use_deterministic_algorithms(True)
-    for k in trange(0, args.num_trials, desc='number of trials'):
+    #for k in trange(0, args.num_trials, desc='number of trials'):
+    for k in range(0, args.num_trials):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
         start = strat(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
         start.train()
-        model_performance[k,0] = start.evaluate(x_test, y_test)
+        model_performance[k, 0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-        #for i in range(1,args.n_rounds):
-        for i in trange(1, args.n_rounds+1, desc='running rounds'):        
+        for i in range(1,args.n_rounds+1):
+        #for i in trange(1, args.n_rounds+1, desc='running rounds'):        
             q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)
             start.train()
-            model_performance[k,i] = start.evaluate(x_test, y_test)
-            censored[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
+            model_performance[k, i] = start.evaluate(x_test, y_test)
+            censored[k, i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
         
+        print(f"Done with {k} out of {args.num_trials}")
     
     results = {'model_perf': model_performance,
                 'censored': censored}
