@@ -3,6 +3,7 @@ import numpy as np
 import copy
 import h5py
 import torch
+from collections import defaultdict
 from data.synth import *
 from sklearn import preprocessing
 from sklearn.datasets import make_regression, make_friedman1
@@ -107,12 +108,17 @@ def get_ds3():
     return split_data(ds3['X'].T, -1*ds3['y'], -1*ds3['y_star'],cens,test_size=1000, verbose = True)
 
 def get_gsbg():
-    f1 = h5py.File("data/gbsg_cancer_train_test.h5",'r+')   
-    x_train = f1['train']['x']
-    y_orig = f1['train']['t']
-    censoring_train = f1['train']['e']
-    x_test = f1['test']['x']
-    y_test = f1['test']['t']
+    datasets = defaultdict(dict)
+    with h5py.File("data/gbsg_cancer_train_test.h5", 'r') as fp:
+        for ds in fp:
+            for array in fp[ds]:
+                datasets[ds][array] = fp[ds][array][:]
+
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
     y_train = y_orig/max(y_orig)
     y_test = y_test/max(y_orig)
     means = np.mean(x_train, axis=0)
@@ -124,12 +130,17 @@ def get_gsbg():
     return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
 
 def get_support():
-    f1 = h5py.File("data/support_train_test.h5",'r+')   
-    x_train = f1['train']['x']
-    y_orig = f1['train']['t']
-    censoring_train = f1['train']['e']
-    x_test = f1['test']['x']
-    y_test = f1['test']['t']
+    datasets = defaultdict(dict)
+    with h5py.File("data/support_train_test.h5", 'r') as fp:
+        for ds in fp:
+            for array in fp[ds]:
+                datasets[ds][array] = fp[ds][array][:]
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
+
     y_train = y_orig/max(y_orig)
     y_test = y_test/max(y_orig)
     means = np.mean(x_train, axis=0)
@@ -141,12 +152,17 @@ def get_support():
     return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
 
 def get_IHC4():
-    f1 = h5py.File("data/metabric_IHC4_clinical_train_test.h5",'r+')   
-    x_train = f1['train']['x']
-    y_orig = f1['train']['t']
-    censoring_train = f1['train']['e']
-    x_test = f1['test']['x']
-    y_test = f1['test']['t']
+    datasets = defaultdict(dict)
+    with h5py.File("data/metabric_IHC4_clinical_train_test.h5", 'r') as fp:
+        for ds in fp:
+            for array in fp[ds]:
+                datasets[ds][array] = fp[ds][array][:]
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
+
     y_train = y_orig/max(y_orig)
     y_test = y_test/max(y_orig)
     means = np.mean(x_train, axis=0)
@@ -159,12 +175,17 @@ def get_IHC4():
 
 
 def get_sim():
-    f1 = h5py.File("data/sim_treatment_dataset.h5",'r+')   
-    x_train = f1['train']['x']
-    y_orig = f1['train']['t']
-    censoring_train = f1['train']['e']
-    x_test = f1['test']['x']
-    y_test = f1['test']['t']
+    datasets = defaultdict(dict)
+    with h5py.File("data/sim_treatment_dataset.h5", 'r') as fp:
+        for ds in fp:
+            for array in fp[ds]:
+                datasets[ds][array] = fp[ds][array][:]
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
+
     y_train = y_orig/max(y_orig)
     y_test = y_test/max(y_orig)
     means = np.mean(x_train, axis=0)
@@ -176,12 +197,17 @@ def get_sim():
     return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
 
 def get_whas():
-    f1 = h5py.File("data/whas_train_test.h5",'r+')   
-    x_train = f1['train']['x']
-    y_orig = f1['train']['t']
-    censoring_train = f1['train']['e']
-    x_test = f1['test']['x']
-    y_test = f1['test']['t']
+    datasets = defaultdict(dict)
+    with h5py.File("data/whas_train_test.h5", 'r') as fp:
+        for ds in fp:
+            for array in fp[ds]:
+                datasets[ds][array] = fp[ds][array][:]
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
+
     y_train = y_orig/max(y_orig)
     y_test = y_test/max(y_orig)
     means = np.mean(x_train, axis=0)
