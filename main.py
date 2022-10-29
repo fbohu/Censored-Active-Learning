@@ -67,7 +67,7 @@ def main(args):
         np.random.seed(123+k) # set seet for common active ids.
         torch.manual_seed(123+k)
         random.seed(123+k)   
-        
+
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
