@@ -34,9 +34,9 @@ class Strategy:
         #                loc=0, scale=1, size=len(scores), random_state=None,
         #            )
 
-        #return idx
+        return idx
         #ids_ = p.argsort()[-n:][::-1]
-        return idxs_unlabeled[ids_]
+        #return idxs_unlabeled[ids_]
 
 
     def update(self, new_ids, reset_net = True):
