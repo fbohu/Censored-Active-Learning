@@ -23,15 +23,20 @@ class Strategy:
     def query(self, n):
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
-        scores = np.exp(scores)
-        scores[np.isnan(scores)] = 1e-7
-        p = scores/np.sum(scores)
-        idx = np.random.choice(
-                        idxs_unlabeled, replace=False, p=p, size=n,
+        #scores = np.exp(scores) # used to get good results
+        #scores[np.isnan(scores)] = 1e-7 # used to get good results
+        #p = scores/np.sum(scores) # used to get good results
+        #idx = np.random.choice(  # used to get good results
+        #                idxs_unlabeled, replace=False, p=p, size=n,
+        #            )
+        
+        p = scores = + scipy.stats.gumbel_r.rvs(
+                        loc=0, scale=1, size=len(scores), random_state=None,
                     )
-        return idx
-        #ids_ = p.argsort()[-n:][::-1]
-        #return idxs_unlabeled[ids_]
+
+        #return idx
+        ids_ = p.argsort()[-n:][::-1]
+        return idxs_unlabeled[ids_]
 
 
     def update(self, new_ids, reset_net = True):
