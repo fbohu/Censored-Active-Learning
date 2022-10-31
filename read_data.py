@@ -29,12 +29,16 @@ def get_dataset(name):
         return get_whas()
     elif name == 'sklearn':
         return get_sklearn()
+    elif name=='tmb':
+        return get_tmb()
+    elif name=='breastMSK':
+        return get_bmsk()
     elif name == 'cbald':
         return get_causalbad()
         
 
 
-def split_data(x, y_cens, y_true, censoring,test_size = 100, verbose = False):
+def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
     print(x.shape[0])
@@ -258,3 +262,178 @@ def get_causalbad():
 
     x = x_t.reshape(n,1)
     return split_data(x, y_cens, y_true, censoring, test_size = 2500, verbose = True)
+
+
+def get_tmb():
+    df=pd.read_table('data/tmb_mskcc_2018_clinical_data.tsv',sep='\t')
+    event_arr = np.array(df['Overall Survival Status'])
+    df['event'] = np.array([int(event_arr[i][0]) for i in range(event_arr.shape[0])])
+    df['time'] = np.array(df['Overall Survival (Months)']).astype(np.float)
+
+    df['age_new'] = np.array(df['Age at Which Sequencing was Reported (Days)'])
+    sex_arr = np.array(df['Sex'])
+    df['sex_new'] = np.array([1 if sex_arr[i] == 'Female' else 0 for i in range(sex_arr.shape[0])])
+
+    # remove nans
+    df.dropna(subset = ['event', 'time', 'age_new','sex_new','TMB (nonsynonymous)'],how='any',inplace=True)
+
+    # use self.target instead of self.df.target to avoid pandas warning
+    target = pd.concat([df.pop(x) for x in ['time','event']], axis=1)
+    data = pd.concat([df.pop(x) for x in ['age_new','sex_new','TMB (nonsynonymous)']], axis=1)
+
+    target = np.array(target)
+    x = np.array(data)
+
+    # clip outliers - Considering clipping data to remove outliers.
+    #x_lim = 5
+    #x = np.clip(x,-x_lim,x_lim)
+    #target = np.clip(target,-x_lim,x_lim)
+
+    censoring= target[:,1]
+    y = target[:,0]
+
+    # in dataset 1=observed, 0=censored, so invert this
+    target[:,1] = np.abs(target[:,1]-1)
+    test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
+
+    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+
+    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    
+    #normaliation
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_test = (x_test-means)/stds
+
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+
+
+    
+    return x_train, y_train, censoring_train, x_test, y_test
+
+
+def get_bmsk():
+    df=pd.read_table('data/breast_msk_2018_clinical_data.tsv',sep='\t')
+
+    event_arr = np.array(df['Overall Survival Status'])
+    df['event'] = np.array([int(event_arr[i][0]) for i in range(event_arr.shape[0])])
+    df['time'] = df['Overall Survival (Months)']
+
+    tmp_arr = np.array(df['ER Status of the Primary'])
+    df['ER_new'] = np.array([1 if tmp_arr[i] == 'Positive' else 0 for i in range(tmp_arr.shape[0])])
+    tmp_arr = np.array(df['Overall Patient HER2 Status'])
+    df['HER2_new'] = np.array([1 if tmp_arr[i] == 'Positive' else 0 for i in range(tmp_arr.shape[0])])
+    tmp_arr = np.array(df['Overall Patient HR Status'])
+    df['HR_new'] = np.array([1 if tmp_arr[i] == 'Positive' else 0 for i in range(tmp_arr.shape[0])])
+
+    # remove nans
+    df.dropna(subset = ['event', 'time', 'ER_new','HER2_new','HR_new','Mutation Count','TMB (nonsynonymous)'],how='any',inplace=True)
+
+    # use self.target instead of self.df.target to avoid pandas warning
+    target = pd.concat([df.pop(x) for x in ['time','event']], axis=1)
+    data = pd.concat([df.pop(x) for x in ['ER_new','HER2_new','HR_new','Mutation Count','TMB (nonsynonymous)']], axis=1)
+
+    target = np.array(target)
+    data = np.array(data)
+
+    input_dim=data.shape[1]
+
+    # in dataset 1=observed, 0=censored, so invert this
+    target[:,1] = np.abs(target[:,1]-1)
+
+    # there is a large value - clip it.
+    x = np.array(data)
+    x_lim = 50
+    x = np.clip(x,-x_lim,x_lim)
+    censoring= target[:,1]
+    y = target[:,0]
+
+    # in dataset 1=observed, 0=censored, so invert this
+    target[:,1] = np.abs(target[:,1]-1)
+    test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
+
+    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+
+    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    
+    #normaliation
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_test = (x_test-means)/stds
+
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+    
+    return x_train, y_train, censoring_train, x_test, y_test
+
+
+
+def get_lgggbm():
+    df=pd.read_table('data/lgggbm_tcga_pub_clinical_data.tsv',sep='\t')
+
+    # remove nans
+    df.dropna(subset = ['Overall Survival Status', 'Overall Survival (Months)', 'Diagnosis Age','Sex','Absolute Purity','Mutation Count','TMB (nonsynonymous)'],how='any',inplace=True)
+
+    event_arr = np.array(df['Overall Survival Status'])
+    df['event'] = np.array([int(event_arr[i][0]) for i in range(event_arr.shape[0])])
+    df['time'] = np.array(df['Overall Survival (Months)']).astype(np.float)
+
+    tmp_arr = np.array(df['Sex'])
+    df['sex_new'] = np.array([1 if tmp_arr[i] == 'Female' else 0 for i in range(tmp_arr.shape[0])])
+
+    # use self.target instead of self.df.target to avoid pandas warning
+    target = pd.concat([df.pop(x) for x in ['time','event']], axis=1)
+    data = pd.concat([df.pop(x) for x in ['Diagnosis Age','sex_new','Absolute Purity','Mutation Count','TMB (nonsynonymous)']], axis=1)
+
+    target = np.array(target)
+    data = np.array(data)
+
+    # in dataset 1=observed, 0=censored, so invert this
+    target[:,1] = np.abs(target[:,1]-1)
+
+    x = np.array(data)
+    x_lim = 125
+    x = np.clip(x,-x_lim,x_lim)
+
+    censoring= target[:,1]
+    y = target[:,0]
+
+    # in dataset 1=observed, 0=censored, so invert this
+    target[:,1] = np.abs(target[:,1]-1)
+    test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
+
+    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+
+    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    
+    #normaliation
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_test = (x_test-means)/stds
+
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+    
+    return x_train, y_train, censoring_train, x_test, y_test
