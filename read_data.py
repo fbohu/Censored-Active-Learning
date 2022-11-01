@@ -298,6 +298,7 @@ def get_tmb():
     target[:,1] = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
 
+    np.random.seed(10)
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
@@ -361,7 +362,7 @@ def get_bmsk():
     # in dataset 1=observed, 0=censored, so invert this
     target[:,1] = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
-
+    np.random.seed(10)
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
@@ -418,7 +419,7 @@ def get_lgggbm():
     # in dataset 1=observed, 0=censored, so invert this
     target[:,1] = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
-
+    np.random.seed(10)
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
