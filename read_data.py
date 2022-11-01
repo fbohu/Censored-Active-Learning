@@ -33,6 +33,8 @@ def get_dataset(name):
         return get_tmb()
     elif name=='breastMSK':
         return get_bmsk()
+    elif name=='lgggbm':
+        return get_lgggbm()
     elif name == 'cbald':
         return get_causalbad()
         
