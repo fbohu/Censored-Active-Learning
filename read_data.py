@@ -482,6 +482,7 @@ def get_mnist():
         risks_mean[df.class_==i] = risk_list[i]
         risks_var[df.class_==i] = var_list[i]
 
+    np.random.seed(10)
     df.target = np.random.gamma(shape=np.square(risks_mean)/risks_var,scale=1/(risks_mean/risks_var)) 
     # self.df.target = np.random.gamma(shape=np.square(risks_mean)/var,scale=1/(risks_mean/var)) 
     # 1/ as diff param -- see https://en.wikipedia.org/wiki/Gamma_distribution
@@ -494,7 +495,6 @@ def get_mnist():
     x = np.array(df.data)
     y = df.target
     test_size = int(df.data.shape[0]-(df.data.shape[0]*0.8)) # number of obs used for testing.
-    np.random.seed(10)
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
