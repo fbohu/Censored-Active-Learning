@@ -10,6 +10,8 @@ class Strategy:
         self.Cens = Cens
         self.ids = ids
         self.net_args = net_args
+        if self.net_args['in_features'] < 0:
+            print("running mnist")
         self.beta = 0.25
         torch.manual_seed(123)
         self.dropout_p = dropout_p
@@ -57,8 +59,15 @@ class Strategy:
         This functions allows for resetting of the network after each query.
         '''
         # Clear Keras backend
-    
-        return BNN.BayesianNN(self.net_args['in_features'],
+        if self.net_args['in_features'] < 0:
+            return BNN.BayesianConvNN(self.net_args['in_features'],
+                            self.net_args['out_features'],
+                            self.net_args['hidden_size'],
+                            dropout_p=self.net_args['dropout_p'],
+                            epochs = self.net_args['epochs'],
+                            lr_rate =self.net_args['lr_rate'])
+        else:
+            return BNN.BayesianNN(self.net_args['in_features'],
                             self.net_args['out_features'],
                             self.net_args['hidden_size'],
                             dropout_p=self.net_args['dropout_p'],

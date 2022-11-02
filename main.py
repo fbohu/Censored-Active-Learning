@@ -42,6 +42,13 @@ def get_model(which, x_train):
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+            'mnist' :{'in_features': -1,
+                    'out_features': 4,
+                    'hidden_size':[128,128,128,128],
+                    'dropout_p': 0.25,
+                    'epochs': 1000,
+                    'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
             }[which]
 
@@ -61,7 +68,7 @@ def main(args):
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
      
-    torch.use_deterministic_algorithms(True)
+    #torch.use_deterministic_algorithms(True)
     #for k in trange(0, args.num_trials, desc='number of trials'):
     for k in range(0, args.num_trials):
         np.random.seed(123+k) # set seet for common active ids.
@@ -98,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='small')
     parser.add_argument('--query', type=str, default='bald')
     parser.add_argument('--init_size', type=int, default=2)
-    parser.add_argument('--query_size', type=int, default=1)
+    parser.add_argument('--query_size', type=int, default= 1)
     parser.add_argument('--num_trials', type=int, default = 2)
     parser.add_argument('--n_rounds', type=int, default = 2)
 

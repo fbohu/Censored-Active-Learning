@@ -313,3 +313,122 @@ class BayesianNN(BayesianModule):
         self.cpu()
         return samples.cpu().detach().mean(1)
         
+
+
+class BayesianConvNN(BayesianModule):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 500, lr_rate = 3e-4):
+        super().__init__()
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        #self.device = 'cpu'
+        if self.device == 'cuda': print("Cuda Available. Running on GPU.")
+        self.epochs = epochs
+        self.lr = lr_rate
+        layers = []
+        layers.append(nn.Conv2d(1, 32, kernel_size=5))
+        layers.append(ConsistentMCDropout2d())
+        layers.append(nn.MaxPool2d(2))
+        layers.append(nn.GELU())
+        layers.append(nn.Conv2d(32, 64, kernel_size=5))
+        layers.append(ConsistentMCDropout2d())
+        layers.append(nn.MaxPool2d(2))
+        layers.append(nn.GELU())
+        layers.append(nn.Flatten())
+        layers.append(nn.Linear(1024, 128))
+        layers.append(nn.GELU())
+        layers.append(ConsistentMCDropout())
+        layers.append(nn.Linear(128, 4))
+        
+        self.net = nn.Sequential(*layers)
+
+    def mc_forward_impl(self, input: torch.Tensor):
+        output = self.net(input)
+        return output
+
+    def _train(self, x_data, y_data, censored):
+        self.to(self.device)
+        tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
+        
+        #optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
+        tmp = torch.tensor(tmp).float()
+        #x_data = torch.tensor(x_data).float().clone().detach()
+        dataset = torch.utils.data.TensorDataset(x_data, tmp)
+        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+        
+        self.train()
+
+        for i in range(0, self.epochs):
+            for _, (data, target) in enumerate(train_dataloader):
+                #data = data.to(device=self.device, non_blocking=True)
+                #target = target.to(device=self.device, non_blocking=True)
+                data = data.to(device=self.device)
+                target = target.to(device=self.device)
+                optimizer.zero_grad()
+                prediction = self(data, k=1).squeeze(1)
+                #loss = combined_tobit(target, prediction)
+                #loss = nll(target, prediction)
+                loss = combined_loss(target, prediction)
+                #loss = ((target-prediction)**2).mean()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
+                optimizer.step()
+
+        self.cpu() 
+        self.eval()
+        #opt= tf.keras.optimizers.Adam(learning_rate=3e-3, clipnorm=1)
+
+        #self.compile(loss=lambda y, f: combined_loss(y, f),optimizer=opt)
+        #history = self.fit(x_data, tmp, epochs = 1000, verbose = 0,  shuffle=True, batch_size = 64)
+
+    @torch.no_grad()
+    def evaluate(self, x_data, y_data):
+        ''' Evaluate the trained network on the a given dataset.
+        Evaluation will be based on NLL.
+        '''
+        tmp = np.concatenate((y_data[:,np.newaxis], y_data[:,np.newaxis]), axis=1) # quick hack to fit dimensions.
+        tmp = torch.tensor(tmp).float()
+        preds = self.predict(x_data)
+        return nll(tmp, preds[:,:2])
+
+    @torch.no_grad()
+    def sample(self, x, k= 20):
+        self.to(self.device)
+        self.eval()
+        
+        dataset = torch.utils.data.TensorDataset(x)
+        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        
+        N = x.shape[0]
+        samples = torch.empty((N, k, 4))
+
+        for i, (data, ) in enumerate(train_dataloader):
+
+            lower = i * train_dataloader.batch_size
+            upper = min(lower + train_dataloader.batch_size, N)
+            #samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            samples[lower:upper].copy_(self(data.to(self.device), k))#, non_blocking=True)
+        
+        self.cpu()
+        return samples.cpu().detach()
+    
+    @torch.no_grad()
+    def predict(self, x, k=20):
+        self.to(self.device)
+        self.eval()
+        dataset = torch.utils.data.TensorDataset(x)
+        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        
+        N = x.shape[0]
+        samples = torch.empty((N, k, 4))
+
+        for i, (data, ) in enumerate(train_dataloader):
+
+            lower = i * train_dataloader.batch_size
+            upper = min(lower + train_dataloader.batch_size, N)
+            #samples[lower:upper].copy_(self(data.to(self.device, non_blocking=True), k))#, non_blocking=True)
+            samples[lower:upper].copy_(self(data.to(self.device), k))#, non_blocking=True)
+        #samples = self(x, k=20)
+        self.cpu()
+        return samples.cpu().detach().mean(1)
+        

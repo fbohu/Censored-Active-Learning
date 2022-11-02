@@ -3,6 +3,8 @@ import numpy as np
 import copy
 import h5py
 import torch
+import torchvision
+import os
 from collections import defaultdict
 from data.synth import *
 from sklearn import preprocessing
@@ -35,6 +37,8 @@ def get_dataset(name):
         return get_bmsk()
     elif name=='lgggbm':
         return get_lgggbm()
+    elif name=='mnist':
+        return get_mnist()
     elif name == 'cbald':
         return get_causalbad()
         
@@ -440,3 +444,63 @@ def get_lgggbm():
     y_test = (y_test-mean_y)/std_y
     
     return x_train, y_train, censoring_train, x_test, y_test
+
+
+def get_mnist():
+    input_dim=(1,28,28)
+
+    # download this. must use version torchvision==0.9.1 to get processed folder
+    # https://github.com/pytorch/vision/issues/4685
+    path_data = "data/"
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
+                                                torchvision.transforms.Normalize((0.5,), (0.5,)),
+                                                ])
+    trainset = torchvision.datasets.MNIST(path_data, download=True, train=True, transform=transform)
+    # trainset is of shape (60000 , 2), with x and y (int)
+    # each x example is (1, 28, 28)
+
+    # we'll match structure of other RealTargetSyntheticCensor datasets by basing around a df object
+    class Object(object):
+        pass
+    df = Object()
+
+    # load whole dataset
+    df.data, df.class_ = torch.load(os.path.join(os.path.join(os.path.join(path_data,'MNIST'),'processed'),'training.pt'))
+    df.data, df.class_ = df.data.numpy(), df.class_.numpy() # this is also dumb but needed for censoring gen
+    df.data = np.expand_dims(df.data,1) # add an extra channel
+
+    # we now generate targets and censoring as per 
+    # App D.2 https://arxiv.org/pdf/2101.05346.pdf
+    # basically, each class is assigned a risk group, which has an associated risk score
+    # this parameterises a gamma dist from which targets are drawn
+    risk_list = [11.25, 2.25, 5.25, 5.0, 4.75, 8.0, 2.0, 11.0, 1.75, 10.75]
+    var_list = [0.1, 0.5, 0.1, 0.2, 0.2, 0.2, 0.3, 0.1, 0.4, 0.6]
+    # var_list = [1e-3]*10
+    risks_mean = np.zeros_like(df.class_)+0.9
+    risks_var = np.zeros_like(df.class_)+0.9
+    for i in range(10):
+        risks_mean[df.class_==i] = risk_list[i]
+        risks_var[df.class_==i] = var_list[i]
+
+    df.target = np.random.gamma(shape=np.square(risks_mean)/risks_var,scale=1/(risks_mean/risks_var)) 
+    # self.df.target = np.random.gamma(shape=np.square(risks_mean)/var,scale=1/(risks_mean/var)) 
+    # 1/ as diff param -- see https://en.wikipedia.org/wiki/Gamma_distribution
+
+    # normalisation
+    df.data = df.data/255
+    df.target = df.target/10
+    censoring_ = np.random.uniform(df.data[:,0,0,0]*0.+df.target.min(), df.data[:,0,0,0]*0.+np.quantile(df.target,0.9))
+    censoring = (censoring_ < df.target)*1.0 
+    x = np.array(df.data)
+    y = df.target
+    test_size = int(df.data.shape[0]-(df.data.shape[0]*0.8)) # number of obs used for testing.
+    np.random.seed(10)
+    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+
+    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    
+    return x_train, y_train, censoring_train, x_test, y_test    
