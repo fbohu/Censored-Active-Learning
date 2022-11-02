@@ -447,6 +447,11 @@ def get_lgggbm():
 
 
 def get_mnist():
+    x_train, y_train, censoring_train = mnist(type='training'
+    x_test, y_test, _ = mnist(type='test')
+    return x_train, y_train, censoring_train, x_test, y_test
+
+def mnist(type_='training'):
     input_dim=(1,28,28)
 
     # download this. must use version torchvision==0.9.1 to get processed folder
@@ -465,7 +470,7 @@ def get_mnist():
     df = Object()
 
     # load whole dataset
-    df.data, df.class_ = torch.load(os.path.join(os.path.join(os.path.join(path_data,'MNIST'),'processed'),'training.pt'))
+    df.data, df.class_ = torch.load(os.path.join(os.path.join(os.path.join(path_data,'MNIST'),'processed'),type_ + '.pt'))
     df.data, df.class_ = df.data.numpy(), df.class_.numpy() # this is also dumb but needed for censoring gen
     df.data = np.expand_dims(df.data,1) # add an extra channel
 
@@ -482,7 +487,11 @@ def get_mnist():
         risks_mean[df.class_==i] = risk_list[i]
         risks_var[df.class_==i] = var_list[i]
 
-    np.random.seed(10)
+    if type_  == 'training':
+        np.random.seed(10)
+    else: 
+        np.random.seed(25)
+
     df.target = np.random.gamma(shape=np.square(risks_mean)/risks_var,scale=1/(risks_mean/risks_var)) 
     # self.df.target = np.random.gamma(shape=np.square(risks_mean)/var,scale=1/(risks_mean/var)) 
     # 1/ as diff param -- see https://en.wikipedia.org/wiki/Gamma_distribution
@@ -494,13 +503,13 @@ def get_mnist():
     censoring = (censoring_ < df.target)*1.0 
     x = np.array(df.data)
     y = df.target
-    test_size = int(df.data.shape[0]-(df.data.shape[0]*0.8)) # number of obs used for testing.
-    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+    #test_size = int(df.data.shape[0]-(df.data.shape[0]*0.8)) # number of obs used for testing.
+    #test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
-    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
-    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
-    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
-    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
-    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    #x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    #y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    #censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    #x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    #y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
     
-    return x_train, y_train, censoring_train, x_test, y_test    
+    return x, y, censoring
