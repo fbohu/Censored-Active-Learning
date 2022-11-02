@@ -447,8 +447,8 @@ def get_lgggbm():
 
 
 def get_mnist():
-    x_train, y_train, censoring_train = mnist(type='training'
-    x_test, y_test, _ = mnist(type='test')
+    x_train, y_train, censoring_train = mnist(type_='training')
+    x_test, y_test, _ = mnist(type_='test')
     return x_train, y_train, censoring_train, x_test, y_test
 
 def mnist(type_='training'):
