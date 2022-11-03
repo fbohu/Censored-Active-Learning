@@ -453,6 +453,10 @@ def get_mnist():
 
 def mnist(type_='training'):
     input_dim=(1,28,28)
+    if type_  == 'training':
+        np.random.seed(10)
+    else: 
+        np.random.seed(25)
 
     # download this. must use version torchvision==0.9.1 to get processed folder
     # https://github.com/pytorch/vision/issues/4685
@@ -486,11 +490,6 @@ def mnist(type_='training'):
     for i in range(10):
         risks_mean[df.class_==i] = risk_list[i]
         risks_var[df.class_==i] = var_list[i]
-
-    if type_  == 'training':
-        np.random.seed(10)
-    else: 
-        np.random.seed(25)
 
     df.target = np.random.gamma(shape=np.square(risks_mean)/risks_var,scale=1/(risks_mean/risks_var)) 
     # self.df.target = np.random.gamma(shape=np.square(risks_mean)/var,scale=1/(risks_mean/var)) 
