@@ -26,7 +26,7 @@ class Strategy:
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
         if self.net_args['in_features'] < 0: # if we are running mnist
-            p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=self.beta, size=len(scores), random_state=None)
+            p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.1, size=len(scores), random_state=None)
             ids_ = p.argsort()[-n:][::-1]
             return idxs_unlabeled[ids_]
 
