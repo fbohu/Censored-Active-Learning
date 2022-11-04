@@ -316,7 +316,7 @@ class BayesianNN(BayesianModule):
 
 
 class BayesianConvNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 500, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 1000, lr_rate = 3e-4):
         super().__init__()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
