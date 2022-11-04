@@ -326,17 +326,17 @@ class BayesianConvNN(BayesianModule):
         self.lr = lr_rate
         layers = []
         layers.append(nn.Conv2d(1, 32, kernel_size=5))
-        layers.append(ConsistentMCDropout2d())
+        layers.append(ConsistentMCDropout2d(p=dropout_p))
         layers.append(nn.MaxPool2d(2))
         layers.append(nn.GELU())
         layers.append(nn.Conv2d(32, 64, kernel_size=5))
-        layers.append(ConsistentMCDropout2d())
+        layers.append(ConsistentMCDropout2d(p=dropout_p))
         layers.append(nn.MaxPool2d(2))
         layers.append(nn.GELU())
         layers.append(nn.Flatten())
         layers.append(nn.Linear(1024, 128))
         layers.append(nn.GELU())
-        layers.append(ConsistentMCDropout())
+        layers.append(ConsistentMCDropout(p=dropout_p))
         layers.append(nn.Linear(128, 4))
         
         self.net = nn.Sequential(*layers)
