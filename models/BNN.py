@@ -316,7 +316,7 @@ class BayesianNN(BayesianModule):
 
 
 class BayesianConvNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 1000, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.20, epochs = 1000, lr_rate = 3e-4):
         super().__init__()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -325,19 +325,25 @@ class BayesianConvNN(BayesianModule):
         self.epochs = epochs
         self.lr = lr_rate
         layers = []
-        layers.append(nn.Conv2d(1, 32, kernel_size=5))
-        layers.append(ConsistentMCDropout2d(p=dropout_p))
-        layers.append(nn.MaxPool2d(2))
+        layers.append(nn.Conv2d(1, 64, kernel_size=(5,5),stride=(1,1)))
         layers.append(nn.GELU())
-        layers.append(nn.Conv2d(32, 64, kernel_size=5))
         layers.append(ConsistentMCDropout2d(p=dropout_p))
-        layers.append(nn.MaxPool2d(2))
+        layers.append(nn.AvgPool2d(kernel_size=(2,2))
+
+        layers.append(nn.Conv2d(64, 128, kernel_size=(5,5)))
         layers.append(nn.GELU())
+        layers.append(ConsistentMCDropout2d(p=dropout_p))
+        layers.append(nn.AvgPool2d(kernel_size=(2,2))
+
+        layers.append(nn.Conv2d(128, 256, kernel_size=(3,3)))
+        layers.append(nn.GELU())
+        #layers.append(ConsistentMCDropout2d(p=dropout_p))
         layers.append(nn.Flatten())
-        layers.append(nn.Linear(1024, 128))
-        layers.append(nn.GELU())
-        layers.append(ConsistentMCDropout(p=dropout_p))
-        layers.append(nn.Linear(128, 4))
+        layers.append(nn.Linear(1024, 4))
+        #layers.append(nn.Linear(1024, 128))
+        #layers.append(nn.GELU())
+        #layers.append(ConsistentMCDropout(p=dropout_p))
+        #layers.append(nn.Linear(128, 4))
         
         self.net = nn.Sequential(*layers)
 
