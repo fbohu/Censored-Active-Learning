@@ -328,12 +328,12 @@ class BayesianConvNN(BayesianModule):
         layers.append(nn.Conv2d(1, 64, kernel_size=(5,5),stride=(1,1)))
         layers.append(nn.GELU())
         layers.append(ConsistentMCDropout2d(p=dropout_p))
-        layers.append(nn.AvgPool2d(kernel_size=(2,2))
+        layers.append(nn.AvgPool2d(kernel_size=(2,2)))
 
         layers.append(nn.Conv2d(64, 128, kernel_size=(5,5)))
         layers.append(nn.GELU())
         layers.append(ConsistentMCDropout2d(p=dropout_p))
-        layers.append(nn.AvgPool2d(kernel_size=(2,2))
+        layers.append(nn.AvgPool2d(kernel_size=(2,2)))
 
         layers.append(nn.Conv2d(128, 256, kernel_size=(3,3)))
         layers.append(nn.GELU())
