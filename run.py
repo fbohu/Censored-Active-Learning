@@ -95,16 +95,14 @@ random.seed(1)
 
 dataset = "synth"
 x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
-model_args = {'in_features': x_train.shape[-1],
-            'out_features': 4,
-            #'hidden_size':[128, 128, 128],
-            'hidden_size':[128,128, 128],
-            'dropout_p': 0.25,
-            'epochs': 1000,
-            'lr_rate':3e-4,
-            'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
-
-
+model_args = {'in_features': 1,
+                    'out_features': 4,
+                    'hidden_size':[128,128],
+                    #'hidden_size':[16, 16],
+                    'dropout_p': 0.25,
+                    'epochs': 1000,
+                    'lr_rate':3e-4,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
 ## Params ds1, ds2, ds3, 
 #init_size = 10
 #query_size = 3
@@ -112,17 +110,17 @@ model_args = {'in_features': x_train.shape[-1],
 #trials = 1
 
 ## Params cbald
-init_size = 100
-query_size = 10
-n_rounds = 10 # The first iteration is silent is silent.
-trials = 1
+#init_size = 100
+#query_size = 10
+#n_rounds = 10 # The first iteration is silent is silent.
+#trials = 1
 
 
 ## Params synth
-#init_size = 50
-#query_size = 10
-#n_rounds = 50 # The first iteration is silent is silent.
-#trials = 3
+init_size = 25
+query_size = 1
+n_rounds = 50 # The first iteration is silent is silent.
+trials = 3
 
 
 ## Params sklearn
@@ -168,7 +166,7 @@ x_train = torch.from_numpy(x_train).float()
 y_train = torch.from_numpy(y_train).float()
 y_test = torch.from_numpy(y_test).float()
 x_test = torch.from_numpy(x_test).float()
-plt_threshold = 1
+plt_threshold = 2
 
 
 for k in trange(0, trials, desc='number of trials'):

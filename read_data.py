@@ -83,7 +83,8 @@ def get_synth():
     np.random.seed(10)
     n = 10000+1000
     # Define underlying function
-    x = np.linspace(0, 10, n)
+    #x = np.linspace(0, 10, n)
+    x = np.random.normal(5,1.5, size=n)
     y_true = 0.5*np.sin(2*x) + 2 + x/10
     #y_true = 0.5*x + 2
 
