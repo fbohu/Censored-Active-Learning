@@ -54,8 +54,8 @@ def visual(active_ids_, start, index, name, censoring_train):
     #plt.scatter(x, y_cens, color='red')
     plt.scatter(x_train[active_ids_], y_train[active_ids_], color='black', zorder=3, s=50)
     plt.scatter(x_train.numpy()[q_ids], y_train.numpy()[q_ids],color='green', zorder=3, s=100)
-    plt.ylim(-3.5, 6.5)
-    plt.xlim(-2,2)
+    #plt.ylim(-3.5, 6.5)
+    #plt.xlim(-2,2)
     plt.savefig("figures/cbald/fit/fit_" + name +"_"+ str(index)+".png")
     plt.close()
     c = censoring_train[active_ids_]
@@ -117,10 +117,10 @@ model_args = {'in_features': 1,
 
 
 ## Params synth
-init_size = 25
+init_size = 5
 query_size = 1
-n_rounds = 50 # The first iteration is silent is silent.
-trials = 3
+n_rounds = 100 # The first iteration is silent is silent.
+trials = 2
 
 
 ## Params sklearn
@@ -242,7 +242,7 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='avg'):
         q_ids = start.query(query_size)
         active_ids_6[q_ids] = True
-        if (k == 0) and (dataset == 'synth'):
+        if (k < plt_threshold) and (dataset == 'synth'):
             visual(active_ids_6, start, i, "avg_"+str(k), censoring_train)
         start.update(active_ids_6)
         start.train()
@@ -259,7 +259,7 @@ for k in trange(0, trials, desc='number of trials'):
     for i in trange(1,n_rounds, desc='class_bald'):
         q_ids = start.query(query_size)
         active_ids_5[q_ids] = True
-        if (k == 0) and (dataset == 'synth'):
+        if (k < plt_threshold) and (dataset == 'synth'):
             visual(active_ids_5, start, i, "class_bald_"+str(k), censoring_train)
         start.update(active_ids_5)
         start.train()

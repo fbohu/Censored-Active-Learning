@@ -89,7 +89,7 @@ def get_synth():
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
-    y_obs = y_true + np.random.normal(loc=0, scale=0.01*x, size=x.shape[0]) ## Heterogenue noise
+    y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
     #y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
     y_cens = copy.deepcopy(y_obs)
 
