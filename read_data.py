@@ -84,7 +84,7 @@ def get_synth():
     n = 10000+1000
     # Define underlying function
     x = np.linspace(0, 10, n)
-    y_true = 0.5*np.sin(2*x) + 2 #+ x/10
+    y_true = 0.5*np.sin(2*x) + 2 + x/10
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
