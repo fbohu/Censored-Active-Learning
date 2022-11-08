@@ -26,7 +26,10 @@ def visual(active_ids_, start, index, name, censoring_train):
     means = start.net.sample(x_test).detach()
     loss = start.evaluate(x_test, y_test)
     scores, _ = start.get_scores(5)
-    scores = np.exp(scores)
+    scores_exp = np.exp(scores)
+    scores_exp[np.isnan(scores_exp)] = 1e-7 # used to get good results
+    scores_exp = scores_exp + 1e-4 # used to get good results
+    scores_exp = scores_exp/scores_exp.sum()
     scores = scores/scores.sum()
     #softplus = torch.nn.Softplus()
     stds_ = 1 +torch.nn.functional.elu(means[:,:,1])#1e-5 + softplus(means[:,:,1])
@@ -85,6 +88,8 @@ def visual(active_ids_, start, index, name, censoring_train):
     #plt.plot(x_train[~np.array(selected)], scores + scipy.stats.gumbel_r.rvs(
     #        loc=0, scale=0.25, size=len(scores), random_state=None),'bo',zorder=0, alpha=0.1)
     plt.plot(x_train[~np.array(selected)], scores, 'ro',zorder=1)
+    plt.plot(x_train[~np.array(selected)], scores_exp, 'bo',zorder=1)
+    plt.ylim(0,None)
     plt.savefig("figures/cbald/scores/scores_" + name +"_"+ str(index)+".png")
     plt.close()
     
@@ -120,7 +125,7 @@ model_args = {'in_features': 1,
 init_size = 5
 query_size = 1
 n_rounds = 100 # The first iteration is silent is silent.
-trials = 2
+trials = 1
 
 
 ## Params sklearn

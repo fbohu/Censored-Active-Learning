@@ -36,11 +36,6 @@ class Strategy:
         idx = np.random.choice(  # used to get good results
                         idxs_unlabeled, replace=False, p=p, size=n,
                     )
-        
-        #p = scores = + scipy.stats.gumbel_r.rvs(
-        #                loc=0, scale=1, size=len(scores), random_state=None,
-        #            )
-
         return idx
         #ids_ = p.argsort()[-n:][::-1]
         #return idxs_unlabeled[ids_]

@@ -231,7 +231,7 @@ class BayesianNN(BayesianModule):
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
         
         #optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=1e-5)
         tmp = torch.tensor(tmp).float()
         #x_data = torch.tensor(x_data).float().clone().detach()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
