@@ -2,8 +2,9 @@ import numpy as np
 from .strategy import Strategy
 
 class RandomSampling(Strategy):
-    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
-        super(RandomSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed)
+    #def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
+    def __init__(self,X, Y, Cens,  ids, net_args, x_val, y_val, random_seed = 123):
+        super(RandomSampling, self).__init__(X, Y, Cens,  ids, net_args, x_val=x_val, y_val=y_val, random_seed=random_seed)
 
     #def query(self, n):
     #    return np.random.choice(np.where(self.ids==0)[0], n, replace=False)

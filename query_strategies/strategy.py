@@ -4,11 +4,14 @@ import scipy.stats
 import torch
 
 class Strategy:
-    def __init__(self, X, Y, Cens,  ids, net_args, random_seed = 123, dropout_p=0.50, beta = 1.0):
+    def __init__(self, X, Y, Cens,  ids, net_args, x_val, y_val, random_seed = 123, dropout_p=0.50, beta = 1.0):
         self.X = X
         self.Y = Y
+        self.X_val = x_val
+        self.Y_val = y_val
         self.Cens = Cens
         self.ids = ids
+        self.name = type(self).__name__ + net_args['dataset']+net_args['size']
         self.net_args = net_args
         if self.net_args['in_features'] < 0:
             print("running mnist")
@@ -26,7 +29,7 @@ class Strategy:
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
         #if self.net_args['in_features'] < 0: # if we are running mnist
-        #    p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.1, size=len(scores), random_state=None)
+        #    p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.25, size=len(scores), random_state=None)
         #    ids_ = p.argsort()[-n:][::-1]
         #    return idxs_unlabeled[ids_]
 
@@ -48,7 +51,7 @@ class Strategy:
             self.net = self.create_model()
 
     def train(self):
-        self.net._train(self.X[self.ids], self.Y[self.ids], self.Cens[self.ids])
+        self.net._train(self.X[self.ids], self.Y[self.ids], self.Cens[self.ids], self.X_val, self.Y_val)
 
     def evaluate(self, x_test, y_test):
         return self.net.evaluate(x_test, y_test).detach().numpy()
@@ -65,14 +68,16 @@ class Strategy:
                             self.net_args['hidden_size'],
                             dropout_p=self.net_args['dropout_p'],
                             epochs = self.net_args['epochs'],
-                            lr_rate =self.net_args['lr_rate'])
+                            lr_rate =self.net_args['lr_rate'],
+                            name=self.name)
         else:
             return BNN.BayesianNN(self.net_args['in_features'],
                             self.net_args['out_features'],
                             self.net_args['hidden_size'],
                             dropout_p=self.net_args['dropout_p'],
                             epochs = self.net_args['epochs'],
-                            lr_rate =self.net_args['lr_rate'])
+                            lr_rate =self.net_args['lr_rate'],
+                            name=self.name)
         #return DenseMCDropoutNetwork.DenseMCDropoutNetwork(self.net_args['in_features'],
         #                                                self.net_args['hidden_size'],
          #                                               input_normalizer)

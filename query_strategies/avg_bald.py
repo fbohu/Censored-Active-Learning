@@ -5,8 +5,8 @@ from scipy import stats
 import torch
 
 class AvgBaldSampling(Strategy):
-    def __init__(self, X, Y, Cens,  ids, net_args, random_seed=123):
-        super(AvgBaldSampling, self).__init__(X, Y, Cens,  ids, net_args, random_seed)
+    def __init__(self,X, Y, Cens,  ids, net_args, x_val, y_val, random_seed = 123):
+        super(AvgBaldSampling, self).__init__(X, Y, Cens,  ids, net_args, x_val=x_val, y_val=y_val, random_seed=random_seed)
 
     #updated for torch
     def get_scores(self, n):
