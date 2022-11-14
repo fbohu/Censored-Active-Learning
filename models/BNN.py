@@ -181,12 +181,13 @@ class ConsistentMCDropout2d(_ConsistentMCDropout):
 
 
 class BayesianNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 500, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 500, lr_rate = 3e-4, name="model"):
         super().__init__()
 
         #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.name = name
         self.device= 'cpu'
-        self.epochs = epochs
+        self.epochs = epochs #change this to return to normal
         self.lr = lr_rate
         layers = []
         for i, dims  in enumerate(hidden_dims):
@@ -206,16 +207,6 @@ class BayesianNN(BayesianModule):
         layers.append(nn.Linear(dims, out_dims))
         self.net = nn.Sequential(*layers)
             
-        #self.fc1_drop = ConsistentMCDropout(p=dropout_p)
-        #self.fc2 = nn.Linear(128, 128)
-        #self.fc2_drop = ConsistentMCDropout(p=dropout_p)
-        #self.fc2 = nn.Linear(128, 128)
-        #self.fc3_drop = ConsistentMCDropout(p=dropout_p)
-        #self.fc3 = nn.Linear(128, 128)
-        #self.fc4_drop = ConsistentMCDropout(p=dropout_p)
-        #self.fc4 = nn.Linear(128, 128)
-        #self.fc5 = nn.Linear(128, 4)
-
     def mc_forward_impl(self, input: torch.Tensor):
         #input = F.leaky_relu(self.fc1_drop(self.fc1(input)))
         #input = F.leaky_relu(self.fc2_drop(self.fc2(input)))
@@ -226,41 +217,61 @@ class BayesianNN(BayesianModule):
         return output
 
 
-    def _train(self, x_data, y_data, censored):
+    def _train(self, x_data, y_data, censored, x_val, y_val):
         self.to(self.device)
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
-        
-        #optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+        y_val_tmp = np.concatenate((y_val[:,np.newaxis], y_val[:,np.newaxis]), axis=1)
+
         optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=1e-5)
         tmp = torch.tensor(tmp).float()
-        #x_data = torch.tensor(x_data).float().clone().detach()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
         train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+
+        y_val_tmp = torch.tensor(y_val_tmp).float()
+        valdataset = torch.utils.data.TensorDataset(x_val, y_val_tmp)
+        val_dataloader = DataLoader(valdataset, batch_size=64, shuffle=True)
         
         self.train()
-
+        best_loss = float("Inf")
+        patience = 25
+        counter = 0
         for i in range(0, self.epochs):
             for _, (data, target) in enumerate(train_dataloader):
-                #data = data.to(device=self.device, non_blocking=True)
-                #target = target.to(device=self.device, non_blocking=True)
                 data = data.to(device=self.device)
                 target = target.to(device=self.device)
                 optimizer.zero_grad()
                 prediction = self(data, k=1).squeeze(1)
-                #loss = combined_tobit(target, prediction)
-                #loss = nll(target, prediction)
                 loss = combined_loss(target, prediction)
-                #loss = ((target-prediction)**2).mean()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
                 optimizer.step()
 
+            with torch.no_grad():
+                self.eval()
+                val_loss = 0
+                for _, (data, target) in enumerate(val_dataloader):
+                    data = data.to(device=self.device)
+                    target = target.to(device=self.device)
+                    preds = self.predict(data)
+                    val_loss += nll(target, preds[:,:2])
+                    #val_loss += combined_loss(target, preds).detach()
+
+                if val_loss < best_loss:
+                    best_loss = val_loss
+                    counter = 0
+                    # At this point also save a snapshot of the current model
+                    torch.save(self.net.state_dict(), "model_points/" + self.name + '.pth')
+                else:
+                    counter += 1
+                    if counter >= patience:
+                        print("BREAKING")
+                        break
+
+            self.train()
+
+        self.net.load_state_dict(torch.load("model_points/" + self.name + '.pth'))
         self.cpu() 
         self.eval()
-        #opt= tf.keras.optimizers.Adam(learning_rate=3e-3, clipnorm=1)
-
-        #self.compile(loss=lambda y, f: combined_loss(y, f),optimizer=opt)
-        #history = self.fit(x_data, tmp, epochs = 1000, verbose = 0,  shuffle=True, batch_size = 64)
 
     @torch.no_grad()
     def evaluate(self, x_data, y_data):
@@ -316,11 +327,12 @@ class BayesianNN(BayesianModule):
 
 
 class BayesianConvNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.20, epochs = 1000, lr_rate = 3e-4):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.20, epochs = 1000, lr_rate = 3e-4, name="model"):
         super().__init__()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         #self.device = 'cpu'
+        self.name = name
         if self.device == 'cuda': print("Cuda Available. Running on GPU.")
         self.epochs = epochs
         self.lr = lr_rate
@@ -339,11 +351,11 @@ class BayesianConvNN(BayesianModule):
         layers.append(nn.GELU())
         #layers.append(ConsistentMCDropout2d(p=dropout_p))
         layers.append(nn.Flatten())
-        layers.append(nn.Linear(1024, 4))
+        layers.append(nn.Linear(1024, 128))
         #layers.append(nn.Linear(1024, 128))
-        #layers.append(nn.GELU())
-        #layers.append(ConsistentMCDropout(p=dropout_p))
-        #layers.append(nn.Linear(128, 4))
+        layers.append(nn.GELU())
+        layers.append(ConsistentMCDropout(p=dropout_p))
+        layers.append(nn.Linear(128, 4))
         
         self.net = nn.Sequential(*layers)
 
@@ -351,35 +363,58 @@ class BayesianConvNN(BayesianModule):
         output = self.net(input)
         return output
 
-    def _train(self, x_data, y_data, censored):
+    def _train(self, x_data, y_data, censored, x_val, y_val):
         self.to(self.device)
         tmp = np.concatenate((y_data[:,np.newaxis], censored[:,np.newaxis]), axis=1)
-        
-        #optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+        y_val_tmp = np.concatenate((y_val[:,np.newaxis], y_val[:,np.newaxis]), axis=1)
+
         optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
         tmp = torch.tensor(tmp).float()
-        #x_data = torch.tensor(x_data).float().clone().detach()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
-        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
-        
-        self.train()
+        train_dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
+        y_val_tmp = torch.tensor(y_val_tmp).float()
+        valdataset = torch.utils.data.TensorDataset(x_val, y_val_tmp)
+        val_dataloader = DataLoader(valdataset, batch_size=128, shuffle=True)
+        
+        best_loss = float("Inf")
+        patience = 25
+        counter = 0
         for i in range(0, self.epochs):
+            self.train()
+            self.to(self.device)
             for _, (data, target) in enumerate(train_dataloader):
                 data = data.to(device=self.device, non_blocking=True)
                 target = target.to(device=self.device, non_blocking=True)
-                #data = data.to(device=self.device)
-                #target = target.to(device=self.device)
                 optimizer.zero_grad()
                 prediction = self(data, k=1).squeeze(1)
-                #loss = combined_tobit(target, prediction)
-                #loss = nll(target, prediction)
                 loss = combined_loss(target, prediction)
-                #loss = ((target-prediction)**2).mean()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
                 optimizer.step()
 
+            with torch.no_grad():
+                self.eval()
+                val_loss = 0
+                for _, (data, target) in enumerate(val_dataloader):
+                    data = data.to(device=self.device)
+                    target = target.to(device=self.device)
+                    preds = self.predict(data).to(self.device)
+                    #val_loss += combined_loss(target, preds)
+                    val_loss += nll(target, preds[:,:2])
+
+                if val_loss < best_loss:
+                    best_loss = val_loss
+                    counter = 0
+                    # At this point also save a snapshot of the current model
+                    torch.save(self.net.state_dict(), "model_points/" + self.name + '.pth')
+                else:
+                    counter += 1
+                    if counter >= patience:
+                        print("BREAKING")
+                        break
+
+        self.net.load_state_dict(torch.load("model_points/" + self.name + '.pth'))
         self.cpu() 
         self.eval()
         #opt= tf.keras.optimizers.Adam(learning_rate=3e-3, clipnorm=1)

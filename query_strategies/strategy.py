@@ -28,10 +28,10 @@ class Strategy:
     def query(self, n):
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
-        #if self.net_args['in_features'] < 0: # if we are running mnist
-        #    p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.25, size=len(scores), random_state=None)
-        #    ids_ = p.argsort()[-n:][::-1]
-        #    return idxs_unlabeled[ids_]
+        if self.net_args['in_features'] < 0: # if we are running mnist
+            p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.1, size=len(scores), random_state=None)
+            ids_ = p.argsort()[-n:][::-1]
+            return idxs_unlabeled[ids_]
 
         scores = np.exp(scores) # used to get good results
         scores[np.isnan(scores)] = 1e-7 # used to get good results

@@ -28,7 +28,8 @@ def get_model(which, x_train):
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'tiny'},
             'mini': {'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[32,32],
@@ -36,7 +37,8 @@ def get_model(which, x_train):
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'mini'},
             'small': {'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128],
@@ -44,28 +46,32 @@ def get_model(which, x_train):
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'small'},
             'medium' :{'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128,128],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'medium'},
             'big' :{'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128,128,128],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'big'},
             'mnist' :{'in_features': -1,
                     'out_features': 4,
                     'hidden_size':[128,128,128,128],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'mnist'}
             }[which]
 
 def main(args):
@@ -73,13 +79,16 @@ def main(args):
     if not os.path.exists(results_path):
         os.mkdir(results_path)
     strat = get_strat(args.query)
-    x_train, y_train, censoring_train, x_test, y_test = get_dataset(args.dataset)
+    x_train, y_train, censoring_train, x_val, y_val, x_test, y_test = get_dataset(args.dataset)
     model_args = get_model(args.model, x_train)
+    model_args['dataset'] = args.dataset
 
     model_performance = np.zeros([args.num_trials, args.n_rounds+1])
     censored = np.zeros([args.num_trials, args.n_rounds+1])
 
     x_train = torch.from_numpy(x_train).float()
+    x_val = torch.from_numpy(x_val).float()
+    y_val = torch.from_numpy(y_val).float()
     y_train = torch.from_numpy(y_train).float()
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
@@ -94,7 +103,7 @@ def main(args):
         active_ids = np.zeros(x_train.shape[0], dtype = bool)
         ids_tmp = np.arange(x_train.shape[0])
         active_ids[np.random.choice(ids_tmp, args.init_size, replace=False)] = True
-        start = strat(x_train, y_train, censoring_train, active_ids, model_args, random_seed=k)
+        start = strat(x_train, y_train, censoring_train, active_ids, model_args, x_val=x_val, y_val=y_val, random_seed=k)
         start.train()
         model_performance[k, 0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])

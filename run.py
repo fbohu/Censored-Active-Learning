@@ -99,15 +99,17 @@ torch.manual_seed(1)
 random.seed(1)
 
 dataset = "synth"
-x_train, y_train, censoring_train, x_test, y_test = get_dataset(dataset)
+x_train, y_train, censoring_train,x_val, y_val, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': 1,
                     'out_features': 4,
                     'hidden_size':[128,128],
                     #'hidden_size':[16, 16],
-                    'dropout_p': 0.25,
+                    'dropout_p': 0.15,
                     'epochs': 1000,
                     'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'dataset':'synth',
+                    'size':'synth'}
 ## Params ds1, ds2, ds3, 
 #init_size = 10
 #query_size = 3
@@ -123,7 +125,7 @@ model_args = {'in_features': 1,
 
 ## Params synth
 init_size = 5
-query_size = 1
+query_size = 3
 n_rounds = 100 # The first iteration is silent is silent.
 trials = 1
 
@@ -171,6 +173,8 @@ x_train = torch.from_numpy(x_train).float()
 y_train = torch.from_numpy(y_train).float()
 y_test = torch.from_numpy(y_test).float()
 x_test = torch.from_numpy(x_test).float()
+y_val = torch.from_numpy(y_val).float()
+x_val = torch.from_numpy(x_val).float()
 plt_threshold = 2
 
 
@@ -223,7 +227,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
     '''
-    start = duo_bald.DuoBaldSampling(x_train, y_train, censoring_train, active_ids_10, model_args, random_seed=k)
+    start = duo_bald.DuoBaldSampling(x_train, y_train, censoring_train, active_ids_10, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     duo_[k,0] = start.evaluate(x_test, y_test)
     c_duo_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -239,7 +243,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = avg_bald.AvgBaldSampling(x_train, y_train, censoring_train, active_ids_6, model_args, random_seed=k)
+    start = avg_bald.AvgBaldSampling(x_train, y_train, censoring_train, active_ids_6, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     avg[k,0] = start.evaluate(x_test, y_test)
     c_avg[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -256,7 +260,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = class_bald.ClassBaldSampling(x_train, y_train, censoring_train, active_ids_5, model_args, random_seed=k)
+    start = class_bald.ClassBaldSampling(x_train, y_train, censoring_train, active_ids_5, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     class_[k,0] = start.evaluate(x_test, y_test)
     c_class[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -307,7 +311,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
     '''
-    start = censbald.CensBaldSampling(x_train, y_train, censoring_train, active_ids_9, model_args, random_seed=k)
+    start = censbald.CensBaldSampling(x_train, y_train, censoring_train, active_ids_9, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     cbald_[k,0] = start.evaluate(x_test, y_test)
     c_cbald_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -324,7 +328,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids_1, model_args, random_seed=k)
+    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids_1, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     bald_[k,0] = start.evaluate(x_test, y_test)
     c_bald_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -341,7 +345,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = random_sampling.RandomSampling(x_train, y_train, censoring_train, active_ids_2, model_args, random_seed=k)
+    start = random_sampling.RandomSampling(x_train, y_train, censoring_train, active_ids_2, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     random[k,0] =start.evaluate(x_test, y_test)
     c_random[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])

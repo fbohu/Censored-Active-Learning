@@ -42,13 +42,9 @@ def get_dataset(name):
     elif name == 'cbald':
         return get_causalbad()
         
-
-
 def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
-    print(x.shape[0])
-    print(test_ids.shape)
     y_train = y_cens[~np.isin(np.arange(x.shape[0]), test_ids)]
     censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
     x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
@@ -59,7 +55,6 @@ def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
     std_y = np.std(y_train)
     x_train = (x_train-means)/stds
     x_test = (x_test-means)/stds
-
 
     y_train = (y_train-mean_y)/std_y
     y_test = (y_test-mean_y)/std_y
@@ -99,9 +94,16 @@ def get_synth():
     p_c = np.random.uniform(low=0.20, high=0.30, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
-
     x = x.reshape(n,1)
-    return split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
+    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 1200, verbose = True)
+    np.random.seed(10)
+    n = len(x_test)
+    val_ids = np.random.choice(np.arange(0,n), size=200, replace=False)
+    x_val = x_test[np.isin(np.arange(n), val_ids)]
+    y_val = y_test[np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[~np.isin(np.arange(n), val_ids)]
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
 def get_ds1():
     ds1 = make_ds1(True, 10000+1000, 1)
@@ -118,6 +120,48 @@ def get_ds3():
     cens = (-1*ds3['y_star'] > -1*ds3['y'])+0
     return split_data(ds3['X'].T, -1*ds3['y'], -1*ds3['y_star'],cens,test_size=1000, verbose = True)
 
+
+def process_h5(datasets, verbose = True, clip_outliers = False, x_lim=5.0):
+    x_train = datasets['train']['x']
+    y_orig = datasets['train']['t']
+    censoring_train = datasets['train']['e']
+    x_test = datasets['test']['x']
+    y_test = datasets['test']['t']
+    censoring_train = np.logical_not(censoring_train).astype(int)
+    n = len(y_test)
+    np.random.seed(10)
+    val_ids = np.random.choice(np.arange(0,n), size=int(n*0.2), replace=False)
+    x_val = x_test[()][np.isin(np.arange(n), val_ids)]
+    y_val = y_test[()][np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[()][~np.isin(np.arange(n), val_ids)]
+
+    y_test = y_test/max(y_orig)
+    y_val = y_val/max(y_orig)
+    y_train = y_orig/max(y_orig)    
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    x_train = (x_train-means)/stds
+    x_val = (x_val-means)/stds
+    x_test = (x_test-means)/stds
+
+    if clip_outliers:
+        # clip outliers
+        x_train = np.clip(x_train,-x_lim,x_lim)
+        x_val = np.clip(x_val,-x_lim,x_lim)
+        x_test = np.clip(x_test,-x_lim,x_lim)
+
+    if verbose:
+        print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
+        print("Train: {}".format(x_train.shape))
+        print("y-Train: {}".format(y_train.shape))
+        print("Val: {}".format(x_val.shape))
+        print("y-Val: {}".format(y_val.shape))
+        print("Test: {}".format(x_test.shape))
+        print("y-test: {}".format(y_test.shape))
+
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
+
 def get_gsbg():
     datasets = defaultdict(dict)
     with h5py.File("data/gbsg_cancer_train_test.h5", 'r') as fp:
@@ -125,20 +169,13 @@ def get_gsbg():
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
 
-    x_train = datasets['train']['x']
-    y_orig = datasets['train']['t']
-    censoring_train = datasets['train']['e']
-    x_test = datasets['test']['x']
-    y_test = datasets['test']['t']
-    y_train = y_orig/max(y_orig)
-    y_test = y_test/max(y_orig)
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-    censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_train)))
-    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
+    datasets['train']['x'][:,6] = np.clip(datasets['train']['x'][:,6], -750.0, 750.0)
+    datasets['train']['x'][:,5] = np.clip(datasets['train']['x'][:,5], -750.0, 750.0)
+
+    datasets['test']['x'][:,6] = np.clip(datasets['test']['x'][:,6], -750.0, 750.0)
+    datasets['test']['x'][:,5] = np.clip(datasets['test']['x'][:,5], -750.0, 750.0)
+    return process_h5(datasets, clip_outliers=False)
+    
 
 def get_support():
     datasets = defaultdict(dict)
@@ -146,21 +183,15 @@ def get_support():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
-    x_train = datasets['train']['x']
-    y_orig = datasets['train']['t']
-    censoring_train = datasets['train']['e']
-    x_test = datasets['test']['x']
-    y_test = datasets['test']['t']
 
-    y_train = y_orig/max(y_orig)
-    y_test = y_test/max(y_orig)
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-    censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_train)))
-    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
+    datasets['train']['x'][:,13] = np.clip(datasets['train']['x'][:,13], -750.0, 10.0)
+    datasets['train']['x'][:,12] = np.clip(datasets['train']['x'][:,12], -750.0, 75.0)
+    datasets['train']['x'][:,8] = np.clip(datasets['train']['x'][:,6], -750.0, 250.0)
+
+    datasets['test']['x'][:,13] = np.clip(datasets['test']['x'][:,13], -750.0, 10.0)
+    datasets['test']['x'][:,12] = np.clip(datasets['test']['x'][:,12], -750.0, 75.0)
+    datasets['test']['x'][:,8] = np.clip(datasets['test']['x'][:,6], -750.0, 250.0)
+    return process_h5(datasets, clip_outliers=False)
 
 def get_IHC4():
     datasets = defaultdict(dict)
@@ -168,21 +199,7 @@ def get_IHC4():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
-    x_train = datasets['train']['x']
-    y_orig = datasets['train']['t']
-    censoring_train = datasets['train']['e']
-    x_test = datasets['test']['x']
-    y_test = datasets['test']['t']
-
-    y_train = y_orig/max(y_orig)
-    y_test = y_test/max(y_orig)
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-    censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_train)))
-    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
+    return process_h5(datasets, clip_outliers=False)
 
 
 def get_sim():
@@ -191,21 +208,7 @@ def get_sim():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
-    x_train = datasets['train']['x']
-    y_orig = datasets['train']['t']
-    censoring_train = datasets['train']['e']
-    x_test = datasets['test']['x']
-    y_test = datasets['test']['t']
-
-    y_train = y_orig/max(y_orig)
-    y_test = y_test/max(y_orig)
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-    censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_train)))
-    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
+    return process_h5(datasets, clip_outliers=False)
 
 def get_whas():
     datasets = defaultdict(dict)
@@ -213,22 +216,7 @@ def get_whas():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
-    x_train = datasets['train']['x']
-    y_orig = datasets['train']['t']
-    censoring_train = datasets['train']['e']
-    x_test = datasets['test']['x']
-    y_test = datasets['test']['t']
-
-    y_train = y_orig/max(y_orig)
-    y_test = y_test/max(y_orig)
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-    censoring_train = np.logical_not(censoring_train).astype(int)
-    print(sum(censoring_train)/(len(y_train)))
-    return x_train[()], y_train[()], censoring_train, x_test[()], y_test[()]
-
+    return process_h5(datasets, clip_outliers=False)
 
 
 def get_sklearn():
@@ -270,6 +258,54 @@ def get_causalbad():
     x = x_t.reshape(n,1)
     return split_data(x, y_cens, y_true, censoring, test_size = 2500, verbose = True)
 
+def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
+    np.random.seed(10)
+    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
+
+    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
+    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
+    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
+    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+
+    n = len(y_train)
+    np.random.seed(10)
+    val_ids = np.random.choice(np.arange(0,n), size=int(n*0.125), replace=False)
+    x_val = x_train[np.isin(np.arange(n), val_ids)]
+    y_val = y_train[np.isin(np.arange(n), val_ids)]
+    x_train = x_train[~np.isin(np.arange(n), val_ids)]
+    y_train = y_train[~np.isin(np.arange(n), val_ids)]
+    censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
+    
+    #normaliation
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_test = (x_test-means)/stds
+    x_val = (x_val-means)/stds
+
+    y_test = y_test/max(y_train)#(y_test-mean_y)/std_y
+    y_val = y_val/max(y_train)#(y_val-mean_y)/std_y
+    y_train = y_train/max(y_train)#(y_train-mean_y)/std_y
+
+    if clip_outliers:
+        # clip outliers
+        x_train = np.clip(x_train,-x_lim,x_lim)
+    #    y_train = np.clip(y_train,-x_lim,x_lim)
+        x_val = np.clip(x_val,-x_lim,x_lim)
+    #    y_val = np.clip(y_val,-x_lim,x_lim)
+        x_test = np.clip(x_test,-x_lim,x_lim)
+    #    y_test = np.clip(y_test,-x_lim,x_lim)
+    print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
+    print("Train: {}".format(x_train.shape))
+    print("Val: {}".format(x_val.shape))
+    print("Test: {}".format(x_test.shape))
+
+
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
+
 
 def get_tmb():
     df=pd.read_table('data/tmb_mskcc_2018_clinical_data.tsv',sep='\t')
@@ -292,41 +328,15 @@ def get_tmb():
     x = np.array(data)
 
     # clip outliers - Considering clipping data to remove outliers.
-    #x_lim = 5
-    #x = np.clip(x,-x_lim,x_lim)
+    x_lim = 50.0
+    x[:,2] = np.clip(x[:,2],-x_lim,x_lim)
     #target = np.clip(target,-x_lim,x_lim)
 
-    censoring= target[:,1]
     y = target[:,0]
-
     # in dataset 1=observed, 0=censored, so invert this
-    target[:,1] = np.abs(target[:,1]-1)
+    censoring = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
-
-    np.random.seed(10)
-    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
-
-    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
-    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
-    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
-    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
-    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
-    
-    #normaliation
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    mean_y = np.mean(y_train)
-    std_y = np.std(y_train)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-
-    y_train = (y_train-mean_y)/std_y
-    y_test = (y_test-mean_y)/std_y
-
-
-    
-    return x_train, y_train, censoring_train, x_test, y_test
-
+    return split_tsv(x, y, test_size, censoring)
 
 def get_bmsk():
     df=pd.read_table('data/breast_msk_2018_clinical_data.tsv',sep='\t')
@@ -352,44 +362,16 @@ def get_bmsk():
     target = np.array(target)
     data = np.array(data)
 
-    input_dim=data.shape[1]
-
-    # in dataset 1=observed, 0=censored, so invert this
-    target[:,1] = np.abs(target[:,1]-1)
-
     # there is a large value - clip it.
     x = np.array(data)
-    x_lim = 50
+    x_lim = 50.0
     x = np.clip(x,-x_lim,x_lim)
-    censoring= target[:,1]
+    
     y = target[:,0]
-
     # in dataset 1=observed, 0=censored, so invert this
-    target[:,1] = np.abs(target[:,1]-1)
+    censoring = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
-    np.random.seed(10)
-    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
-
-    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
-    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
-    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
-    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
-    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
-    
-    #normaliation
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    mean_y = np.mean(y_train)
-    std_y = np.std(y_train)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-
-    y_train = (y_train-mean_y)/std_y
-    y_test = (y_test-mean_y)/std_y
-    
-    return x_train, y_train, censoring_train, x_test, y_test
-
-
+    return split_tsv(x, y, test_size, censoring)
 
 def get_lgggbm():
     df=pd.read_table('data/lgggbm_tcga_pub_clinical_data.tsv',sep='\t')
@@ -415,42 +397,31 @@ def get_lgggbm():
     target[:,1] = np.abs(target[:,1]-1)
 
     x = np.array(data)
-    x_lim = 125
+    x_lim = 125.0
     x = np.clip(x,-x_lim,x_lim)
-
-    censoring= target[:,1]
     y = target[:,0]
-
     # in dataset 1=observed, 0=censored, so invert this
-    target[:,1] = np.abs(target[:,1]-1)
+    censoring = np.abs(target[:,1]-1)
     test_size = int(data.shape[0]-(data.shape[0]*0.8)) # number of obs used for testing.
-    np.random.seed(10)
-    test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
-
-    x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
-    y_train = y[~np.isin(np.arange(x.shape[0]), test_ids)]
-    censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
-    x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
-    y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    return split_tsv(x, y, test_size, censoring)
     
-    #normaliation
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    mean_y = np.mean(y_train)
-    std_y = np.std(y_train)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
-
-    y_train = (y_train-mean_y)/std_y
-    y_test = (y_test-mean_y)/std_y
-    
-    return x_train, y_train, censoring_train, x_test, y_test
-
-
 def get_mnist():
     x_train, y_train, censoring_train = mnist(type_='training')
+    n = len(y_train)
+    np.random.seed(10)
+    val_ids = np.random.choice(np.arange(0,n), size=15000, replace=False)
+    x_val = x_train[np.isin(np.arange(n), val_ids)]
+    y_val = y_train[np.isin(np.arange(n), val_ids)]
+    x_train = x_train[~np.isin(np.arange(n), val_ids)]
+    y_train = y_train[~np.isin(np.arange(n), val_ids)]
+    censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
     x_test, y_test, _ = mnist(type_='test')
-    return x_train, y_train, censoring_train, x_test, y_test
+
+    print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
+    print("Train: {}".format(x_train.shape))
+    print("Val: {}".format(x_val.shape))
+    print("Test: {}".format(x_test.shape))
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
 
 def mnist(type_='training'):
     input_dim=(1,28,28)
