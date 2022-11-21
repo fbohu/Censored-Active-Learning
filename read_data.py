@@ -49,15 +49,15 @@ def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
     censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
     x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
     y_test = y_true[np.isin(np.arange(x.shape[0]), test_ids)]
-    means = np.mean(x_train, axis=0)
-    stds = np.std(x_train, axis=0)
-    mean_y = np.mean(y_train)
-    std_y = np.std(y_train)
-    x_train = (x_train-means)/stds
-    x_test = (x_test-means)/stds
+    #means = np.mean(x_train, axis=0)
+    #stds = np.std(x_train, axis=0)
+    #mean_y = np.mean(y_train)
+    #std_y = np.std(y_train)
+    #x_train = (x_train-means)/stds
+    #x_test = (x_test-means)/stds
 
-    y_train = (y_train-mean_y)/std_y
-    y_test = (y_test-mean_y)/std_y
+    #y_train = (y_train-mean_y)/std_y
+    #y_test = (y_test-mean_y)/std_y
 
     if verbose:
         print(x_train.shape)
@@ -91,11 +91,35 @@ def get_synth():
     # Select random points as censored and apply p% censoring
     censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.2) 
     #censoring = np.random.choice(2, n, p=[0.1, 0.9])*censoring # this can be used to uncensor some.
-    p_c = np.random.uniform(low=0.20, high=0.30, size=np.sum(censoring==1))
+    p_c = np.random.uniform(low=0.05, high=0.20, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
     x = x.reshape(n,1)
-    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 1200, verbose = True)
+    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 3000, verbose = True)
+    np.random.seed(10)
+    n = len(x_test)
+    val_ids = np.random.choice(np.arange(0,n), size=1000, replace=False)
+    x_val = x_test[np.isin(np.arange(n), val_ids)]
+    y_val = y_test[np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[~np.isin(np.arange(n), val_ids)]
+
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_val = (x_val-means)/stds
+    x_test = (x_test-means)/stds
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+    y_val = (y_val-mean_y)/std_y
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
+    
+def get_ds1():
+    ds1 = make_ds1(True, 10000+1200, 1)
+    cens = (-1*ds1['y_star'] > -1*ds1['y'])+0
+    x_train, y_train, censoring_train, x_test, y_test = split_data(ds1['X'].T, -1*ds1['y'], -1*ds1['y_star'],cens,test_size=1200, verbose = True)
     np.random.seed(10)
     n = len(x_test)
     val_ids = np.random.choice(np.arange(0,n), size=200, replace=False)
@@ -104,11 +128,6 @@ def get_synth():
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
     y_test = y_test[~np.isin(np.arange(n), val_ids)]
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
-    
-def get_ds1():
-    ds1 = make_ds1(True, 10000+1000, 1)
-    cens = (-1*ds1['y_star'] > -1*ds1['y'])+0
-    return split_data(ds1['X'].T, -1*ds1['y'], -1*ds1['y_star'],cens,test_size=1000, verbose = True)
 
 def get_ds2():
     ds2 = make_ds2(True,10000+1000, 1)
@@ -169,11 +188,13 @@ def get_gsbg():
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
 
-    datasets['train']['x'][:,6] = np.clip(datasets['train']['x'][:,6], -750.0, 750.0)
-    datasets['train']['x'][:,5] = np.clip(datasets['train']['x'][:,5], -750.0, 750.0)
+    #datasets['train']['x'][:,6] = np.clip(datasets['train']['x'][:,6], -750.0, 750.0)
+    #datasets['train']['x'][:,5] = np.clip(datasets['train']['x'][:,5], -750.0, 750.0)
 
-    datasets['test']['x'][:,6] = np.clip(datasets['test']['x'][:,6], -750.0, 750.0)
-    datasets['test']['x'][:,5] = np.clip(datasets['test']['x'][:,5], -750.0, 750.0)
+    #datasets['test']['x'][:,6] = np.clip(datasets['test']['x'][:,6], -750.0, 750.0)
+    #datasets['test']['x'][:,5] = np.clip(datasets['test']['x'][:,5], -750.0, 750.0)
+    datasets['train']['t'] = np.log(datasets['train']['t'])
+    datasets['test']['t'] = np.log(datasets['test']['t'])
     return process_h5(datasets, clip_outliers=False)
     
 
@@ -184,13 +205,15 @@ def get_support():
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
 
-    datasets['train']['x'][:,13] = np.clip(datasets['train']['x'][:,13], -750.0, 10.0)
-    datasets['train']['x'][:,12] = np.clip(datasets['train']['x'][:,12], -750.0, 75.0)
-    datasets['train']['x'][:,8] = np.clip(datasets['train']['x'][:,6], -750.0, 250.0)
+    #datasets['train']['x'][:,13] = np.clip(datasets['train']['x'][:,13], -750.0, 10.0)
+    #datasets['train']['x'][:,12] = np.clip(datasets['train']['x'][:,12], -750.0, 75.0)
+    #datasets['train']['x'][:,8] = np.clip(datasets['train']['x'][:,6], -750.0, 250.0)
 
-    datasets['test']['x'][:,13] = np.clip(datasets['test']['x'][:,13], -750.0, 10.0)
-    datasets['test']['x'][:,12] = np.clip(datasets['test']['x'][:,12], -750.0, 75.0)
-    datasets['test']['x'][:,8] = np.clip(datasets['test']['x'][:,6], -750.0, 250.0)
+    #datasets['test']['x'][:,13] = np.clip(datasets['test']['x'][:,13], -750.0, 10.0)
+    #datasets['test']['x'][:,12] = np.clip(datasets['test']['x'][:,12], -750.0, 75.0)
+    #datasets['test']['x'][:,8] = np.clip(datasets['test']['x'][:,6], -750.0, 250.0)
+    datasets['train']['t'] = np.log(datasets['train']['t'])
+    datasets['test']['t'] = np.log(datasets['test']['t'])
     return process_h5(datasets, clip_outliers=False)
 
 def get_IHC4():
@@ -199,6 +222,8 @@ def get_IHC4():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
+    datasets['train']['t'] = np.log(datasets['train']['t'])
+    datasets['test']['t'] = np.log(datasets['test']['t'])
     return process_h5(datasets, clip_outliers=False)
 
 
@@ -208,6 +233,8 @@ def get_sim():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
+    datasets['train']['t'] = np.log(datasets['train']['t'])
+    datasets['test']['t'] = np.log(datasets['test']['t'])
     return process_h5(datasets, clip_outliers=False)
 
 def get_whas():
@@ -216,6 +243,9 @@ def get_whas():
         for ds in fp:
             for array in fp[ds]:
                 datasets[ds][array] = fp[ds][array][:]
+
+    datasets['train']['t'] = np.log(datasets['train']['t'])
+    datasets['test']['t'] = np.log(datasets['test']['t'])
     return process_h5(datasets, clip_outliers=False)
 
 
@@ -260,6 +290,8 @@ def get_causalbad():
 
 def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
     np.random.seed(10)
+
+    y = np.log(y+1e-7)
     test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
     x_train = x[~np.isin(np.arange(x.shape[0]), test_ids)]
@@ -328,8 +360,8 @@ def get_tmb():
     x = np.array(data)
 
     # clip outliers - Considering clipping data to remove outliers.
-    x_lim = 50.0
-    x[:,2] = np.clip(x[:,2],-x_lim,x_lim)
+    #x_lim = 50.0
+    #x[:,2] = np.clip(x[:,2],-x_lim,x_lim)
     #target = np.clip(target,-x_lim,x_lim)
 
     y = target[:,0]
@@ -407,6 +439,11 @@ def get_lgggbm():
     
 def get_mnist():
     x_train, y_train, censoring_train = mnist(type_='training')
+    x_test, y_test, _ = mnist(type_='test')
+
+    y_train = np.log(y_train)
+    y_test = np.log(y_test)
+
     n = len(y_train)
     np.random.seed(10)
     val_ids = np.random.choice(np.arange(0,n), size=15000, replace=False)
@@ -415,7 +452,6 @@ def get_mnist():
     x_train = x_train[~np.isin(np.arange(n), val_ids)]
     y_train = y_train[~np.isin(np.arange(n), val_ids)]
     censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
-    x_test, y_test, _ = mnist(type_='test')
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
     print("Train: {}".format(x_train.shape))
@@ -471,9 +507,14 @@ def mnist(type_='training'):
     df.data = df.data/255
     df.target = df.target/10
     censoring_ = np.random.uniform(df.data[:,0,0,0]*0.+df.target.min(), df.data[:,0,0,0]*0.+np.quantile(df.target,0.9))
-    censoring = (censoring_ < df.target)*1.0 
+    #censoring = (censoring_ < df.target)*1.0 
     x = np.array(df.data)
     y = df.target
+    if type_  == 'training':
+        censoring = np.array([censoring_< y])*1 # 1 if censored else 0
+        y = np.minimum(y, censoring_)
+    else: 
+        censoring = (censoring_ < df.target)*1.0 
     #test_size = int(df.data.shape[0]-(df.data.shape[0]*0.8)) # number of obs used for testing.
     #test_ids = np.random.choice(np.arange(0,x.shape[0]), size=test_size, replace=False)
 
