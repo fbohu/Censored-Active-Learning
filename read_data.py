@@ -445,14 +445,15 @@ def get_mnist():
     y_test = np.log(y_test)
     print(y_train.shape)
     print(y_test.shape)
-    n = len(y_train)
+    n = len(y_test)
     np.random.seed(10)
-    val_ids = np.random.choice(np.arange(0,n), size=15000, replace=False)
-    x_val = x_train[np.isin(np.arange(n), val_ids)]
-    y_val = y_train[np.isin(np.arange(n), val_ids)]
-    x_train = x_train[~np.isin(np.arange(n), val_ids)]
-    y_train = y_train[~np.isin(np.arange(n), val_ids)]
-    censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
+    val_ids = np.random.choice(np.arange(0,n), size=5000, replace=False)
+    
+    x_val = x_test[np.isin(np.arange(n), val_ids)]
+    y_val = y_test[np.isin(np.arange(n), val_ids)]
+    x_train = x_test[~np.isin(np.arange(n), val_ids)]
+    y_train = y_test[~np.isin(np.arange(n), val_ids)]
+    #censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
     print("Train: {}".format(x_train.shape))
@@ -506,7 +507,7 @@ def mnist(type_='training'):
 
     # normalisation
     df.data = df.data/255
-    df.target = df.target/10
+    #df.target = df.target/10
     censoring_ = np.random.uniform(df.data[:,0,0,0]*0.+df.target.min(), df.data[:,0,0,0]*0.+np.quantile(df.target,0.9))
     #censoring = (censoring_ < df.target)*1.0 
     x = np.array(df.data)
