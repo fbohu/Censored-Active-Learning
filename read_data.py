@@ -443,7 +443,8 @@ def get_mnist():
 
     y_train = np.log(y_train)
     y_test = np.log(y_test)
-
+    print(y_train.shape)
+    print(y_test.shape)
     n = len(y_train)
     np.random.seed(10)
     val_ids = np.random.choice(np.arange(0,n), size=15000, replace=False)
@@ -511,7 +512,7 @@ def mnist(type_='training'):
     x = np.array(df.data)
     y = df.target
     if type_  == 'training':
-        censoring = np.array([censoring_< y])*1 # 1 if censored else 0
+        censoring = (censoring_< y)*1.0 # 1 if censored else 0
         y = np.minimum(y, censoring_)
     else: 
         censoring = (censoring_ < df.target)*1.0 
