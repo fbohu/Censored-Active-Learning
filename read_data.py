@@ -76,29 +76,29 @@ def get_synth():
     """
 
     np.random.seed(10)
-    n = 10000+1000
+    n = 10000
     # Define underlying function
     #x = np.linspace(0, 10, n)
-    x = np.random.normal(5,1.5, size=n)
+    x = np.random.normal(5,2.5, size=n)
     y_true = 0.5*np.sin(2*x) + 2 + x/10
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
-    y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
-    #y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
+    #y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
+    y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
     y_cens = copy.deepcopy(y_obs)
 
     # Select random points as censored and apply p% censoring
-    censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.2) 
-    #censoring = np.random.choice(2, n, p=[0.1, 0.9])*censoring # this can be used to uncensor some.
-    p_c = np.random.uniform(low=0.05, high=0.20, size=np.sum(censoring==1))
+    censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
+    #censoring = np.random.choice(2, n, p=[0.2, 0.80])*censoring # this can be used to uncensor some.
+    p_c = np.random.uniform(low=0.05, high=0.30, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
     x = x.reshape(n,1)
-    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 3000, verbose = True)
+    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
     np.random.seed(10)
     n = len(x_test)
-    val_ids = np.random.choice(np.arange(0,n), size=1000, replace=False)
+    val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
     x_val = x_test[np.isin(np.arange(n), val_ids)]
     y_val = y_test[np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
@@ -111,9 +111,13 @@ def get_synth():
     x_train = (x_train-means)/stds
     x_val = (x_val-means)/stds
     x_test = (x_test-means)/stds
-    y_train = (y_train-mean_y)/std_y
-    y_test = (y_test-mean_y)/std_y
-    y_val = (y_val-mean_y)/std_y
+    
+    y_test = y_test/max(y_train)
+    y_val = y_val/max(y_train)
+    y_train = y_train/max(y_train)
+    #y_train = (y_train-mean_y)/std_y
+    #y_test = (y_test-mean_y)/std_y
+    #y_val = (y_val-mean_y)/std_y
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
 def get_ds1():
@@ -279,14 +283,33 @@ def get_causalbad():
     x_t = np.random.normal(0, 1, size=n)
     t = np.random.binomial(size=n, n=1, p=torch.sigmoid(torch.Tensor(2*x_t+0.5)).numpy())
     #t[(t== 0) | ((t==1) & (x_t < -0.25))] = 0
-    y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1, size=n)
-    #y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1+(t*0.30*x_t)+((1-t)*0.10*abs(x_t)))
+    #y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1, size=n)
+    y_true = (2*t-1)*x_t+(2*t+1)-2*np.sin(2*(2*t-1)*x_t)+2*(1+0.5*x_t)+np.random.normal(0,1+(t*0.30*x_t)+((1-t)*0.10*abs(x_t)))
     y_cens = y_true.copy()
     censoring = t
-    y_cens[t==1] = y_cens[t==1]*0.7
+    y_cens[t==1] = y_cens[t==1]*0.5
 
     x = x_t.reshape(n,1)
-    return split_data(x, y_cens, y_true, censoring, test_size = 2500, verbose = True)
+    x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 2500, verbose = True)
+
+    np.random.seed(10)
+    n = len(x_test)
+    val_ids = np.random.choice(np.arange(0,n), size=1000, replace=False)
+    x_val = x_test[np.isin(np.arange(n), val_ids)]
+    y_val = y_test[np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[~np.isin(np.arange(n), val_ids)]
+
+    y_test = y_test/max(y_train)
+    y_val = y_val/max(y_train)
+    y_train = y_train/max(y_train)  
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    x_train = (x_train-means)/stds
+    x_val = (x_val-means)/stds
+    x_test = (x_test-means)/stds
+
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
 
 def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
     np.random.seed(10)
@@ -451,8 +474,8 @@ def get_mnist():
     
     x_val = x_test[np.isin(np.arange(n), val_ids)]
     y_val = y_test[np.isin(np.arange(n), val_ids)]
-    x_train = x_test[~np.isin(np.arange(n), val_ids)]
-    y_train = y_test[~np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[~np.isin(np.arange(n), val_ids)]
     #censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
