@@ -189,6 +189,7 @@ class BayesianNN(BayesianModule):
         self.device= 'cpu'
         self.epochs = epochs #change this to return to normal
         self.lr = lr_rate
+        self.output_dim = out_dims
         layers = []
         for i, dims  in enumerate(hidden_dims):
             if i ==0:
@@ -204,7 +205,7 @@ class BayesianNN(BayesianModule):
                 
         ## Remove last fully connected
         layers = layers[:-1]
-        layers.append(nn.Linear(dims, out_dims))
+        layers.append(nn.Linear(dims, self.output_dim))
         self.net = nn.Sequential(*layers)
             
     def mc_forward_impl(self, input: torch.Tensor):
@@ -292,7 +293,7 @@ class BayesianNN(BayesianModule):
         train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
         
         N = x.shape[0]
-        samples = torch.empty((N, k, 4))
+        samples = torch.empty((N, k, self.output_dim))
 
         for i, (data, ) in enumerate(train_dataloader):
 
@@ -312,7 +313,7 @@ class BayesianNN(BayesianModule):
         train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
         
         N = x.shape[0]
-        samples = torch.empty((N, k, 4))
+        samples = torch.empty((N, k, self.output_dim))
 
         for i, (data, ) in enumerate(train_dataloader):
 
@@ -327,7 +328,7 @@ class BayesianNN(BayesianModule):
 
 
 class BayesianConvNN(BayesianModule):
-    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.20, epochs = 1000, lr_rate = 3e-4, name="model"):
+    def __init__(self, in_dims, out_dims, hidden_dims, dropout_p=0.25, epochs = 1000, lr_rate = 3e-4, name="model"):
         super().__init__()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -336,6 +337,7 @@ class BayesianConvNN(BayesianModule):
         if self.device == 'cuda': print("Cuda Available. Running on GPU.")
         self.epochs = epochs
         self.lr = lr_rate
+        self.output_dim = out_dims
         layers = []
         layers.append(nn.Conv2d(1, 64, kernel_size=(5,5),stride=(1,1)))
         layers.append(nn.GELU())
@@ -355,7 +357,7 @@ class BayesianConvNN(BayesianModule):
         #layers.append(nn.Linear(1024, 128))
         layers.append(nn.GELU())
         layers.append(ConsistentMCDropout(p=dropout_p))
-        layers.append(nn.Linear(128, 4))
+        layers.append(nn.Linear(128, self.output_dim))
         
         self.net = nn.Sequential(*layers)
 
@@ -371,14 +373,14 @@ class BayesianConvNN(BayesianModule):
         optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
         tmp = torch.tensor(tmp).float()
         dataset = torch.utils.data.TensorDataset(x_data, tmp)
-        train_dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
+        train_dataloader = DataLoader(dataset, batch_size=256, shuffle=True)
 
         y_val_tmp = torch.tensor(y_val_tmp).float()
         valdataset = torch.utils.data.TensorDataset(x_val, y_val_tmp)
-        val_dataloader = DataLoader(valdataset, batch_size=128, shuffle=True)
+        val_dataloader = DataLoader(valdataset, batch_size=256, shuffle=True)
         
         best_loss = float("Inf")
-        patience = 25
+        patience = 10
         counter = 0
         for i in range(0, self.epochs):
             self.train()
@@ -438,10 +440,10 @@ class BayesianConvNN(BayesianModule):
         self.eval()
         
         dataset = torch.utils.data.TensorDataset(x)
-        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        train_dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
         
         N = x.shape[0]
-        samples = torch.empty((N, k, 4))
+        samples = torch.empty((N, k, self.output_dim))
 
         for i, (data, ) in enumerate(train_dataloader):
 
@@ -458,10 +460,10 @@ class BayesianConvNN(BayesianModule):
         self.to(self.device)
         self.eval()
         dataset = torch.utils.data.TensorDataset(x)
-        train_dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+        train_dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
         
         N = x.shape[0]
-        samples = torch.empty((N, k, 4))
+        samples = torch.empty((N, k, self.output_dim))
 
         for i, (data, ) in enumerate(train_dataloader):
 

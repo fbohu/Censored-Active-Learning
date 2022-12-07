@@ -79,19 +79,19 @@ def get_synth():
     n = 10000
     # Define underlying function
     #x = np.linspace(0, 10, n)
-    x = np.random.normal(5,2.5, size=n)
+    x = np.random.normal(5,2.0, size=n)
     y_true = 0.5*np.sin(2*x) + 2 + x/10
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
-    #y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
-    y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
+    y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
+    #y_obs = y_true + np.random.normal(loc=0, scale=0.01, size=x.shape[0]) ## Homo noise
     y_cens = copy.deepcopy(y_obs)
 
     # Select random points as censored and apply p% censoring
     censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
-    #censoring = np.random.choice(2, n, p=[0.2, 0.80])*censoring # this can be used to uncensor some.
-    p_c = np.random.uniform(low=0.05, high=0.30, size=np.sum(censoring==1))
+    censoring = np.random.choice(2, n, p=[0.20, 0.80])*censoring # this can be used to uncensor some.
+    p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
     x = x.reshape(n,1)
@@ -108,16 +108,23 @@ def get_synth():
     stds = np.std(x_train, axis=0)
     mean_y = np.mean(y_train)
     std_y = np.std(y_train)
-    x_train = (x_train-means)/stds
-    x_val = (x_val-means)/stds
-    x_test = (x_test-means)/stds
-    
+    #x_train = (x_train-means)/stds
+    #x_val = (x_val-means)/stds
+    #x_test = (x_test-means)/stds    
     y_test = y_test/max(y_train)
     y_val = y_val/max(y_train)
     y_train = y_train/max(y_train)
     #y_train = (y_train-mean_y)/std_y
     #y_test = (y_test-mean_y)/std_y
     #y_val = (y_val-mean_y)/std_y
+
+    print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
+    print("Train: {}".format(x_train.shape))
+    print("y-Train: {}".format(y_train.shape))
+    print("Val: {}".format(x_val.shape))
+    print("y-Val: {}".format(y_val.shape))
+    print("Test: {}".format(x_test.shape))
+    print("y-test: {}".format(y_test.shape))
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
 def get_ds1():

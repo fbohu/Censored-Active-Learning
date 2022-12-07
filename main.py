@@ -7,7 +7,7 @@ import argparse
 import random
 from tqdm.auto import trange
 
-from query_strategies import random_sampling, bald, censbald, duo_bald, avg_bald, class_bald
+from query_strategies import random_sampling, bald, censbald, duo_bald, avg_bald, class_bald, gauss_bald
 from read_data import *
 
 def get_strat(which):
@@ -18,22 +18,21 @@ def get_strat(which):
         'duobald': duo_bald.DuoBaldSampling,
         'avg_bald': avg_bald.AvgBaldSampling,
         'classbald': class_bald.ClassBaldSampling,
+        'gaussbald': gauss_bald.GaussBaldSampling
     }[which]
 
-def get_model(which, x_train):
+def get_model(which, args, x_train):
     return {'tiny': {'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[16,16],
-                    #'hidden_size':[16, 16],
+                    'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
+                    'hidden_size': np.repeat([args.hidden_size], args.layers),
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'tiny'},
+                    'size': str(args.hidden_size) + str(args.layers)},
             'mini': {'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[32,32],
-                    #'hidden_size':[16, 16],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
@@ -42,7 +41,6 @@ def get_model(which, x_train):
             'small': {'in_features': x_train.shape[-1],
                     'out_features': 4,
                     'hidden_size':[128,128],
-                    #'hidden_size':[16, 16],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
@@ -65,13 +63,21 @@ def get_model(which, x_train):
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                     'size': 'big'},
             'mnist' :{'in_features': -1,
-                    'out_features': 4,
+                    'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
                     'hidden_size':[128,128,128,128],
                     'dropout_p': 0.25,
                     'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'mnist'}
+                    'size': 'mnist'},
+            'synth' :{'in_features': x_train.shape[-1],
+                    'out_features': 4,
+                    'hidden_size':[128,128,128],
+                    'dropout_p': 0.15,
+                    'epochs': 1000,
+                    'lr_rate':3e-3,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'size': 'synth'},
             }[which]
 
 def main(args):
@@ -80,8 +86,9 @@ def main(args):
         os.mkdir(results_path)
     strat = get_strat(args.query)
     x_train, y_train, censoring_train, x_val, y_val, x_test, y_test = get_dataset(args.dataset)
-    model_args = get_model(args.model, x_train)
+    model_args = get_model(args.model, args, x_train)
     model_args['dataset'] = args.dataset
+    print(model_args)
 
     model_performance = np.zeros([args.num_trials, args.n_rounds+1])
     censored = np.zeros([args.num_trials, args.n_rounds+1])
@@ -120,7 +127,7 @@ def main(args):
     
     results = {'model_perf': model_performance,
                 'censored': censored}
-    with open(results_path + args.query + "-" + args.model + '.pickle', 'wb') as handle:
+    with open(results_path + args.query + "-" + model_args['size'] + '.pickle', 'wb') as handle:
         pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
@@ -128,6 +135,9 @@ if __name__ == "__main__":
     
     parser.add_argument('--dataset', type=str, default='synth')
     parser.add_argument('--model', type=str, default='small')
+    parser.add_argument('--hidden_size', type=int, default=128)
+    parser.add_argument('--layers', type=int, default=2)
+
     parser.add_argument('--query', type=str, default='bald')
     parser.add_argument('--init_size', type=int, default=2)
     parser.add_argument('--query_size', type=int, default= 1)

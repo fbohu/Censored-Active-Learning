@@ -59,5 +59,6 @@ def nll(y, f):
 def combined_loss(y, f):
     loss = 0.0
     loss += combined_tobit(y, f[:,:2])
-    loss += nll(y, f[:,2:])
+    if f.shape[-1] > 2:
+        loss += nll(y, f[:,2:])
     return loss

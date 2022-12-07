@@ -52,10 +52,13 @@ def visual(active_ids_, start, index, name, censoring_train):
     plt.plot(x_test, means.mean(1)[:,2],'o',label='Mean from ensemble',  color='red', zorder=2)
     plt.plot(x_test, means.mean(1)[:,2]-2*stds.mean(1),'o',label='Mean from ensemble',  color='red', zorder=2)
     plt.plot(x_test, means.mean(1)[:,2]+2*stds.mean(1),'o',label='Mean from ensemble', color='red', zorder=2)
+    #plt.xlim(-2,2)
+    plt.ylim(0.25, 1.3)
     #plt.scatter(x_test, y_test,color='red')
     #plt.scatter(x, y_obs, color='black')
     #plt.scatter(x, y_cens, color='red')
-    plt.scatter(x_train[active_ids_], y_train[active_ids_], color='black', zorder=3, s=50)
+    plt.scatter(x_train[active_ids_][censoring_train[active_ids_] == 0], y_train[active_ids_][censoring_train[active_ids_] == 0], color='black', zorder=3, s=50)
+    plt.scatter(x_train[active_ids_][censoring_train[active_ids_] == 1], y_train[active_ids_][censoring_train[active_ids_] == 1], marker="x", color='red', zorder=3, s=50)
     plt.scatter(x_train.numpy()[q_ids], y_train.numpy()[q_ids],color='green', zorder=3, s=100)
     #plt.ylim(-3.5, 6.5)
     #plt.xlim(-2,2)
@@ -65,13 +68,15 @@ def visual(active_ids_, start, index, name, censoring_train):
     x_t = x_train[active_ids_].squeeze().numpy()
     #print(c)
     #print(x_t.shape)
+    x_real = np.random.normal(5,2.0, size=1000)
     plt.figure(figsize=(16,8))
-    plt.hist(x_t[c==0], bins=15, density=False, color='blue', alpha=0.5)
-    plt.hist(x_t[c==1], bins=15, density=False, color='red', alpha=0.5)
-    plt.axvline(x=2, c='black')
-    plt.axvline(x=0, c='black')
-    plt.axvline(x=-2, c='black')
-    plt.xlim(-5,5)
+    plt.hist(x_real, bins=15, density=True, color='green', alpha=1.0)
+    plt.hist(x_t, bins=15, density=True, color='blue', alpha=0.5)
+    #plt.hist(x_t[c==1], bins=15, density=True, color='red', alpha=0.5)
+    #plt.axvline(x=2, c='black')
+    #plt.axvline(x=0, c='black')
+    #plt.axvline(x=-2, c='black')
+    #plt.xlim(-5,5)
     #plt.text(2.75, 0.5, "Very High Censoring", fontsize=12)
     #plt.text(0.5, 0.5, "High Censoring", fontsize=12)
     #plt.text(-1.40, 0.5, "Low Censoring", fontsize=12)
@@ -102,11 +107,11 @@ dataset = "synth"
 x_train, y_train, censoring_train,x_val, y_val, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': 1,
                     'out_features': 4,
-                    'hidden_size':[128,128],
-                    #'hidden_size':[16, 16],
+                    #'hidden_size':[256,256, 256],
+                    'hidden_size':[128,128,128],
                     'dropout_p': 0.15,
                     'epochs': 1000,
-                    'lr_rate':3e-4,
+                    'lr_rate':3e-3,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                     'dataset':'synth',
                     'size':'synth'}
@@ -124,9 +129,9 @@ model_args = {'in_features': 1,
 
 
 ## Params synth
-init_size = 5
-query_size = 3
-n_rounds = 100 # The first iteration is silent is silent.
+init_size = 50
+query_size = 5
+n_rounds = 50 # The first iteration is silent is silent.
 trials = 1
 
 
