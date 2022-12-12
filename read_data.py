@@ -5,6 +5,8 @@ import h5py
 import torch
 import torchvision
 import os
+import random
+import scipy
 from collections import defaultdict
 from data.synth import *
 from sklearn import preprocessing
@@ -74,13 +76,12 @@ def get_synth():
     - Select the points in the oscillation peaks. 
     - Apply a p_c% manual censoring to those points sampled uniformly between [0.2, 0.3] for all selected points.
     """
-
     np.random.seed(10)
     n = 10000
     # Define underlying function
     #x = np.linspace(0, 10, n)
-    x = np.random.normal(5,2.0, size=n)
-    y_true = 0.5*np.sin(2*x) + 2 + x/10
+    x = np.random.normal(5, 1.0, size=n)
+    y_true = 0.5*np.sin(2*x) + 2 #+ x/10
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
@@ -90,19 +91,25 @@ def get_synth():
 
     # Select random points as censored and apply p% censoring
     censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
-    censoring = np.random.choice(2, n, p=[0.20, 0.80])*censoring # this can be used to uncensor some.
+    #censoring = np.random.choice(2, n, p=[0.10, 0.90])*censoring # this can be used to uncensor some.
     p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
     x = x.reshape(n,1)
     x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
     np.random.seed(10)
+
+
     n = len(x_test)
     val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
     x_val = x_test[np.isin(np.arange(n), val_ids)]
     y_val = y_test[np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
     y_test = y_test[~np.isin(np.arange(n), val_ids)]
+
+    x_test = np.linspace(1.5, 8.5, 500)
+    y_test = 0.5*np.sin(2*x_test) + 2 #+ x/10
+    x_test = x_test.reshape(500,1)
 
     means = np.mean(x_train, axis=0)
     stds = np.std(x_train, axis=0)
@@ -111,12 +118,15 @@ def get_synth():
     #x_train = (x_train-means)/stds
     #x_val = (x_val-means)/stds
     #x_test = (x_test-means)/stds    
-    y_test = y_test/max(y_train)
-    y_val = y_val/max(y_train)
-    y_train = y_train/max(y_train)
+    #y_test = y_test/max(y_train)
+    #y_val = y_val/max(y_train)
+    #y_train = y_train/max(y_train)
     #y_train = (y_train-mean_y)/std_y
     #y_test = (y_test-mean_y)/std_y
     #y_val = (y_val-mean_y)/std_y
+    y_test = y_test/max(y_train)
+    y_val = y_val/max(y_train)
+    y_train = y_train/max(y_train)
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
     print("Train: {}".format(x_train.shape))
@@ -125,6 +135,8 @@ def get_synth():
     print("y-Val: {}".format(y_val.shape))
     print("Test: {}".format(x_test.shape))
     print("y-test: {}".format(y_test.shape))
+
+
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
 def get_ds1():
