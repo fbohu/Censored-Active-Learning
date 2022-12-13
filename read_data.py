@@ -51,16 +51,6 @@ def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
     censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
     x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
     y_test = y_true[np.isin(np.arange(x.shape[0]), test_ids)]
-    #means = np.mean(x_train, axis=0)
-    #stds = np.std(x_train, axis=0)
-    #mean_y = np.mean(y_train)
-    #std_y = np.std(y_train)
-    #x_train = (x_train-means)/stds
-    #x_test = (x_test-means)/stds
-
-    #y_train = (y_train-mean_y)/std_y
-    #y_test = (y_test-mean_y)/std_y
-
     if verbose:
         print(x_train.shape)
         print(y_train.shape)
@@ -115,18 +105,18 @@ def get_synth():
     stds = np.std(x_train, axis=0)
     mean_y = np.mean(y_train)
     std_y = np.std(y_train)
-    #x_train = (x_train-means)/stds
-    #x_val = (x_val-means)/stds
-    #x_test = (x_test-means)/stds    
+    x_train = (x_train-means)/stds
+    x_val = (x_val-means)/stds
+    x_test = (x_test-means)/stds    
     #y_test = y_test/max(y_train)
     #y_val = y_val/max(y_train)
     #y_train = y_train/max(y_train)
-    #y_train = (y_train-mean_y)/std_y
-    #y_test = (y_test-mean_y)/std_y
-    #y_val = (y_val-mean_y)/std_y
-    y_test = y_test/max(y_train)
-    y_val = y_val/max(y_train)
-    y_train = y_train/max(y_train)
+    y_train = (y_train-mean_y)/std_y
+    y_test = (y_test-mean_y)/std_y
+    y_val = (y_val-mean_y)/std_y
+    #y_test = y_test/max(y_train)
+    #y_val = y_val/max(y_train)
+    #y_train = y_train/max(y_train)
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
     print("Train: {}".format(x_train.shape))
