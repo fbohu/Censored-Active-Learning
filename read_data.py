@@ -10,7 +10,6 @@ import scipy
 from collections import defaultdict
 from data.synth import *
 from sklearn import preprocessing
-from pysurvival.datasets import Dataset
 from sklearn.datasets import make_regression, make_friedman1
 
 def get_dataset(name):
@@ -18,6 +17,12 @@ def get_dataset(name):
         return get_synth()
     if name == 'churn':
         return get_churn()
+    if name == 'credit_risk':
+        return get_credit()
+    if name == 'employee':
+        return get_employee()
+    if name == 'main':
+        return get_maintenance()
     elif name == 'ds1':
         return get_ds1()
     elif name == 'ds2':
@@ -133,20 +138,7 @@ def get_synth():
 
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
-def get_churn():
-    raw_dataset = Dataset('churn').load()
-    # Creating one-hot vectors
-    categories = ['product_travel_expense', 'product_payroll', 'product_accounting',
-                'us_region', 'company_size']
-    dataset = pd.get_dummies(raw_dataset, columns=categories, drop_first=True)
-
-    # Creating the time and event columns
-    time_column = 'months_active'
-    event_column = 'churned'
-
-    # Extracting the features
-    features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
-    # Checking for null values
+def parse_csv(dataset, features, time_column, event_column):
     N_null = sum(dataset[features].isnull().sum())
     print("The raw_dataset contains {} null values".format(N_null)) #0 null values
 
@@ -164,11 +156,11 @@ def get_churn():
     data_test  = dataset.loc[index_test].reset_index( drop = True )
 
     # Creating the X, T and E inputs
-    x_train, x_test = data_train[features], data_test[features]
-    y_train, y_test = data_train[time_column], data_test[time_column]
-    censoring_train, _ = data_train[event_column], data_test[event_column]
-    
-
+    x_train, x_test = data_train[features].values, data_test[features].values
+    y_train, y_test = data_train[time_column].values, data_test[time_column].values
+    censoring_train, _ = data_train[event_column].values, data_test[event_column].values
+    y_train = np.log(y_train) # log_transform
+    y_test = np.log(y_test) # log_transform
     n = len(x_test)
     val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
     x_val = x_test[np.isin(np.arange(n), val_ids)]
@@ -196,6 +188,57 @@ def get_churn():
     print("Test: {}".format(x_test.shape))
     print("y-test: {}".format(y_test.shape))
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
+
+
+def get_churn():
+    #raw_dataset = Dataset('churn').load()
+    # Creating one-hot vectors
+    #categories = ['product_travel_expense', 'product_payroll', 'product_accounting',
+    #            'us_region', 'company_size']
+    #dataset = pd.get_dummies(raw_dataset, columns=categories, drop_first=True)
+    dataset = pd.read_csv("data/churn.csv")
+    # Creating the time and event columns
+    time_column = 'months_active'
+    event_column = 'churned'
+
+    # Extracting the features
+    features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
+    return parse_csv(dataset, features, time_column, event_column)
+
+def get_credit():
+    # Creating the time and event columns
+    dataset = pd.read_csv("data/credit_risk.csv")
+    time_column = 'duration'
+    event_column = 'full_repaid'
+
+    # Extracting the features
+    features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
+    return parse_csv(dataset, features, time_column, event_column)
+
+def get_employee():
+    # Creating the time and event columns
+    dataset = pd.read_csv("data/employee_attrition.csv")
+    time_column = 'time_spend_company'
+    event_column = 'left'
+
+    # Creating one-hot vectors
+    #category_columns = ['department', 'salary']
+    #dataset = pd.get_dummies(raw_dataset, columns=category_columns, drop_first=True)
+    #dataset.head()
+
+    # Creating the features
+    features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
+    return parse_csv(dataset, features, time_column, event_column)
+
+def get_maintenance():
+    dataset = pd.read_csv("data/maintenance.csv")
+    # Defining the time and event column
+    time_column = 'lifetime'
+    event_column = 'broken'
+
+    # Defining the modeling features
+    features = np.setdiff1d(dataset.columns, ['lifetime', 'broken']).tolist()
+    return parse_csv(dataset, features, time_column, event_column)
 
 def get_ds1():
     ds1 = make_ds1(True, 10000+1200, 1)
