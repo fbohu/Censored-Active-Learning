@@ -159,8 +159,8 @@ def parse_csv(dataset, features, time_column, event_column):
     x_train, x_test = data_train[features].values, data_test[features].values
     y_train, y_test = data_train[time_column].values, data_test[time_column].values
     censoring_train, _ = data_train[event_column].values, data_test[event_column].values
-    y_train = np.log(y_train) # log_transform
-    y_test = np.log(y_test) # log_transform
+    #y_train = np.log(y_train) # log_transform
+    #y_test = np.log(y_test) # log_transform
     n = len(x_test)
     val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
     x_val = x_test[np.isin(np.arange(n), val_ids)]
