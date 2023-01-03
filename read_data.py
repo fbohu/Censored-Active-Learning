@@ -138,7 +138,7 @@ def get_synth():
 
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
-def parse_csv(dataset, features, time_column, event_column):
+def parse_csv(dataset, features, time_column, event_column, flip =True):
     N_null = sum(dataset[features].isnull().sum())
     print("The raw_dataset contains {} null values".format(N_null)) #0 null values
 
@@ -159,7 +159,8 @@ def parse_csv(dataset, features, time_column, event_column):
     x_train, x_test = data_train[features].values, data_test[features].values
     y_train, y_test = data_train[time_column].values, data_test[time_column].values
     censoring_train, _ = data_train[event_column].values, data_test[event_column].values
-    
+    if flip:
+        censoring_train = np.logical_not(censoring_train).astype(int)
     #y_train = np.log(y_train) # log_transform
     #y_test = np.log(y_test) # log_transform
     n = len(x_test)
@@ -239,7 +240,7 @@ def get_maintenance():
 
     # Defining the modeling features
     features = np.setdiff1d(dataset.columns, ['lifetime', 'broken']).tolist()
-    return parse_csv(dataset, features, time_column, event_column)
+    return parse_csv(dataset, features, time_column, event_column, flip=False)
 
 def get_ds1():
     ds1 = make_ds1(True, 10000+1200, 1)
