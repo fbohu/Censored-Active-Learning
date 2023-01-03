@@ -10,11 +10,14 @@ import scipy
 from collections import defaultdict
 from data.synth import *
 from sklearn import preprocessing
+from pysurvival.datasets import Dataset
 from sklearn.datasets import make_regression, make_friedman1
 
 def get_dataset(name):
     if name == 'synth':
         return get_synth()
+    if name == 'churn':
+        return get_churn()
     elif name == 'ds1':
         return get_ds1()
     elif name == 'ds2':
@@ -130,6 +133,70 @@ def get_synth():
 
     return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
     
+def get_churn():
+    raw_dataset = Dataset('churn').load()
+    # Creating one-hot vectors
+    categories = ['product_travel_expense', 'product_payroll', 'product_accounting',
+                'us_region', 'company_size']
+    dataset = pd.get_dummies(raw_dataset, columns=categories, drop_first=True)
+
+    # Creating the time and event columns
+    time_column = 'months_active'
+    event_column = 'churned'
+
+    # Extracting the features
+    features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
+    # Checking for null values
+    N_null = sum(dataset[features].isnull().sum())
+    print("The raw_dataset contains {} null values".format(N_null)) #0 null values
+
+    # Removing duplicates if there exist
+    N_dupli = sum(dataset.duplicated(keep='first'))
+    dataset = dataset.drop_duplicates(keep='first').reset_index(drop=True)
+    print("The raw_dataset contains {} duplicates".format(N_dupli))
+
+    # Number of samples in the dataset
+    N = dataset.shape[0]
+    # Building training and testing sets
+    from sklearn.model_selection import train_test_split
+    index_train, index_test = train_test_split(range(N), test_size = 0.35, random_state=42)
+    data_train = dataset.loc[index_train].reset_index( drop = True )
+    data_test  = dataset.loc[index_test].reset_index( drop = True )
+
+    # Creating the X, T and E inputs
+    x_train, x_test = data_train[features], data_test[features]
+    y_train, y_test = data_train[time_column], data_test[time_column]
+    censoring_train, _ = data_train[event_column], data_test[event_column]
+    
+
+    n = len(x_test)
+    val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
+    x_val = x_test[np.isin(np.arange(n), val_ids)]
+    y_val = y_test[np.isin(np.arange(n), val_ids)]
+    x_test = x_test[~np.isin(np.arange(n), val_ids)]
+    y_test = y_test[~np.isin(np.arange(n), val_ids)]
+
+    means = np.mean(x_train, axis=0)
+    stds = np.std(x_train, axis=0)
+    mean_y = np.mean(y_train)
+    std_y = np.std(y_train)
+    x_train = (x_train-means)/stds
+    x_val = (x_val-means)/stds
+    x_test = (x_test-means)/stds    
+
+    y_test = y_test/max(y_train)
+    y_val = y_val/max(y_train)
+    y_train = y_train/max(y_train)
+
+    print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
+    print("Train: {}".format(x_train.shape))
+    print("y-Train: {}".format(y_train.shape))
+    print("Val: {}".format(x_val.shape))
+    print("y-Val: {}".format(y_val.shape))
+    print("Test: {}".format(x_test.shape))
+    print("y-test: {}".format(y_test.shape))
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
+
 def get_ds1():
     ds1 = make_ds1(True, 10000+1200, 1)
     cens = (-1*ds1['y_star'] > -1*ds1['y'])+0
