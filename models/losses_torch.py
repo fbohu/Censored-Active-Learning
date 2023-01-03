@@ -11,10 +11,11 @@ def combined_tobit(y, f):
     censored: a binary list where 1 is a censored observations
     """
     y_pred = f[:,0]
-    #softplus = torch.nn.Softplus()
+    softplus = torch.nn.Softplus()
     #torch.nn.functional.softplus
     #sigma = 1e-5 + torch.nn.functional.softplus(f[:,1])
-    sigma =  torch.exp(f[:,1])
+    #sigma =  torch.exp(f[:,1])
+    sigma =  1e-5 + softplus(f[:,1])
     y_true = y[:,0]#tf.cast(y[:,0], tf.float32)
     censored = y[:,1].int().bool() #tf.cast(y[:,1], tf.float32)
     norm = torch.distributions.Normal(loc=0., scale=1.)
@@ -41,7 +42,8 @@ def nll(y, f):
     softplus = torch.nn.Softplus()
     #sigma = 1e-5 + softplus(f[:,1])
     #sigma = 1e-5 +torch.nn.functional.softplus(f[:,1])
-    sigma =  torch.exp(f[:,1])
+    #sigma =  torch.exp(f[:,1])
+    sigma =  1e-5 + softplus(f[:,1])
     y_true = y[:,0] #tf.cast(y[:,0], tf.float32)
     #y_pred = #tf.cast(y_pred, tf.float32)
     #sigma = #tf.cast(sigma, tf.float32)

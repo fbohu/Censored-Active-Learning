@@ -71,7 +71,7 @@ def get_synth():
     # Define underlying function
     #x = np.linspace(0, 10, n)
     x = np.random.normal(5, 1.0, size=n)
-    y_true = 0.5*np.sin(2*x) + 2 #+ x/10
+    y_true = 0.5*np.sin(2*x) + 2 + x/10
     #y_true = 0.5*x + 2
 
     # Generate noisy observations 
@@ -84,7 +84,8 @@ def get_synth():
     #censoring = np.random.choice(2, n, p=[0.10, 0.90])*censoring # this can be used to uncensor some.
     p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
     y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
-    #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.01, size=sum(censoring))
+    #cens_levl = 2.0
+    #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.05, size=sum(censoring))
     x = x.reshape(n,1)
     x_train, y_train, censoring_train, x_test, y_test = split_data(x, y_cens, y_true, censoring, test_size = 1000, verbose = True)
     np.random.seed(10)
@@ -98,7 +99,7 @@ def get_synth():
     y_test = y_test[~np.isin(np.arange(n), val_ids)]
 
     x_test = np.linspace(1.5, 8.5, 500)
-    y_test = 0.5*np.sin(2*x_test) + 2 #+ x/10
+    y_test = 0.5*np.sin(2*x_test) + 2 + x_test/10
     x_test = x_test.reshape(500,1)
 
     means = np.mean(x_train, axis=0)

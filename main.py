@@ -25,7 +25,7 @@ def get_model(which, args, x_train):
     return {'tiny': {'in_features': x_train.shape[-1],
                     'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
                     'hidden_size': np.repeat([args.hidden_size], args.layers),
-                    'dropout_p': 0.25,
+                    'dropout_p': args.dropout,#0.25 original is 25
                     'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -71,9 +71,9 @@ def get_model(which, args, x_train):
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                     'size': 'mnist'},
             'synth' :{'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[128,128,128],
-                    'dropout_p': 0.15,
+                    'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
+                    'hidden_size':[128,128, 128],
+                    'dropout_p': 0.1,
                     'epochs': 1000,
                     'lr_rate':3e-3,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='small')
     parser.add_argument('--hidden_size', type=int, default=128)
     parser.add_argument('--layers', type=int, default=2)
+    parser.add_argument('--dropout', type=float, default=0.25)
 
     parser.add_argument('--query', type=str, default='bald')
     parser.add_argument('--init_size', type=int, default=2)
