@@ -8,7 +8,6 @@ import os
 import random
 import scipy
 from collections import defaultdict
-from data.synth import *
 from sklearn import preprocessing
 from sklearn.datasets import make_regression, make_friedman1
 
@@ -23,12 +22,6 @@ def get_dataset(name):
         return get_employee()
     if name == 'main':
         return get_maintenance()
-    elif name == 'ds1':
-        return get_ds1()
-    elif name == 'ds2':
-        return get_ds1()
-    elif name == 'ds3':
-        return get_ds3()
     elif name == 'gsbg':
         return get_gsbg()
     elif name == 'support':
@@ -161,10 +154,19 @@ def parse_csv(dataset, features, time_column, event_column, flip =True):
     censoring_train, _ = data_train[event_column].values, data_test[event_column].values
     if flip:
         censoring_train = np.logical_not(censoring_train).astype(int)
-    #y_train = np.log(y_train) # log_transform
-    #y_test = np.log(y_test) # log_transform
+    
+    x_train = x_train[y_train != 0]
+    censoring_train = censoring_train[y_train != 0]
+    y_train = y_train[y_train != 0]
+
+    x_test = x_test[y_test != 0]
+    y_test = y_test[y_test != 0]
+
+    y_train = np.log(y_train) # log_transform
+    y_test = np.log(y_test) # log_transform
     n = len(x_test)
-    val_ids = np.random.choice(np.arange(0,n), size=250, replace=False)
+    np.random.seed(42)
+    val_ids = np.random.choice(np.arange(0,n), size=int(n*0.2), replace=False)
     x_val = x_test[np.isin(np.arange(n), val_ids)]
     y_val = y_test[np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
@@ -193,77 +195,40 @@ def parse_csv(dataset, features, time_column, event_column, flip =True):
 
 
 def get_churn():
-    #raw_dataset = Dataset('churn').load()
-    # Creating one-hot vectors
-    #categories = ['product_travel_expense', 'product_payroll', 'product_accounting',
-    #            'us_region', 'company_size']
-    #dataset = pd.get_dummies(raw_dataset, columns=categories, drop_first=True)
     dataset = pd.read_csv("data/churn.csv")
     # Creating the time and event columns
     time_column = 'months_active'
     event_column = 'churned'
-
     # Extracting the features
     features = np.setdiff1d(dataset.columns, [time_column, event_column]).tolist()
     return parse_csv(dataset, features, time_column, event_column)
 
 def get_credit():
-    # Creating the time and event columns
     dataset = pd.read_csv("data/credit_risk.csv")
+    # Creating the time and event columns
     time_column = 'duration'
     event_column = 'full_repaid'
-
     # Extracting the features
     features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
-    return parse_csv(dataset, features, time_column, event_column)
+    return parse_csv(dataset, features, time_column, event_column, flip=True)
 
 def get_employee():
-    # Creating the time and event columns
     dataset = pd.read_csv("data/employee_attrition.csv")
+    # Creating the time and event columns
     time_column = 'time_spend_company'
     event_column = 'left'
-
-    # Creating one-hot vectors
-    #category_columns = ['department', 'salary']
-    #dataset = pd.get_dummies(raw_dataset, columns=category_columns, drop_first=True)
-    #dataset.head()
-
     # Creating the features
     features = np.setdiff1d(dataset.columns, [time_column, event_column] ).tolist()
-    return parse_csv(dataset, features, time_column, event_column)
+    return parse_csv(dataset, features, time_column, event_column, flip=False)
 
 def get_maintenance():
     dataset = pd.read_csv("data/maintenance.csv")
     # Defining the time and event column
     time_column = 'lifetime'
     event_column = 'broken'
-
     # Defining the modeling features
     features = np.setdiff1d(dataset.columns, ['lifetime', 'broken']).tolist()
     return parse_csv(dataset, features, time_column, event_column, flip=False)
-
-def get_ds1():
-    ds1 = make_ds1(True, 10000+1200, 1)
-    cens = (-1*ds1['y_star'] > -1*ds1['y'])+0
-    x_train, y_train, censoring_train, x_test, y_test = split_data(ds1['X'].T, -1*ds1['y'], -1*ds1['y_star'],cens,test_size=1200, verbose = True)
-    np.random.seed(10)
-    n = len(x_test)
-    val_ids = np.random.choice(np.arange(0,n), size=200, replace=False)
-    x_val = x_test[np.isin(np.arange(n), val_ids)]
-    y_val = y_test[np.isin(np.arange(n), val_ids)]
-    x_test = x_test[~np.isin(np.arange(n), val_ids)]
-    y_test = y_test[~np.isin(np.arange(n), val_ids)]
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
-
-def get_ds2():
-    ds2 = make_ds2(True,10000+1000, 1)
-    cens = (-1*ds2['y_star'] > -1*ds2['y'])+0
-    return split_data(ds2['X'].T, -1*ds2['y'], -1*ds2['y_star'],cens,test_size=1000, verbose = True)
-
-def get_ds3():
-    ds3 = make_ds3(True, 10000+1000, 1)
-    cens = (-1*ds3['y_star'] > -1*ds3['y'])+0
-    return split_data(ds3['X'].T, -1*ds3['y'], -1*ds3['y_star'],cens,test_size=1000, verbose = True)
 
 
 def process_h5(datasets, verbose = True, clip_outliers = False, x_lim=5.0):
