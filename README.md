@@ -5,8 +5,10 @@ This work reproduces the experiments for our paper: Bayesian Active Learning for
 # Experiments
 To run the experiment `python3 main.py --dataset NAME_OF_DATA_SET --model "normal" --query QUERY_NAME --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
+## Synthetic experiment
+Generation of figures for the synthetic experiment can be generated with `python3 run.py`
 
-# Queries
+# Scoring functions
 Here is a list of the names for the different queries (Paper name: code name)
 - Random : 'random'
 - Uncertainty : 'unc'
@@ -14,6 +16,7 @@ Here is a list of the names for the different queries (Paper name: code name)
 - C-BALD : 'cbald'
 - T-BALD : 'duobald'
 
+The specific scoring functions can be seen in `query_stragies/`
 
 # Model
 The model is created based on the hidden_size and the layers parameters. 
