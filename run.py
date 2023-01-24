@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 #from models import DenseMCDropoutNetwork
-from query_strategies import random_sampling, bald, mu, mupi, pi, rho, tau, murho, mutau, censbald, duo_bald, avg_bald, class_bald
+from query_strategies import random_sampling, unc, bald, censbald, duo_bald
 from models.losses import tobit_nll
 from read_data import *
 #from datasets import get_dataset
@@ -72,11 +72,11 @@ def visual(active_ids_, start, index, name, censoring_train):
 
     plt.style.use('default')
     width = 487.8225
-    fig, ax = plt.subplots(figsize=set_size(width,1), frameon=False)
+    fig, ax = plt.subplots(figsize=set_size(width*1.1,1), frameon=False)
     #fig = plt.figure(figsize=(12,6))
     #ax = fig.add_subplot(111)
     plt.ylim(-3.5, 7.5)
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 18})
     #plt.title(str(loss))
     #for i in range(0,20):
     #    plt.plot(x_test, means[:,i,0],'bo', alpha=0.01, zorder=0)
@@ -87,16 +87,17 @@ def visual(active_ids_, start, index, name, censoring_train):
         #plt.plot(x_test, means[:,i,2]+2*stds[:,i],'ro', alpha=0.01, zorder=0)
         #plt.plot(x_test, means[:,i,2]-2*stds[:,i],'ro', alpha=0.01, zorder=0)
         #plt.plot(x, -1*samples[i,:,-1],'ro', alpha=0.01)
-    plt.plot(x_test, means.mean(1)[:,0],color='#DB4430', label = 'Probabilistic fit')
+    plt.plot(x_test, means.mean(1)[:,0],color='#DB4430', label = r'$\mu_i(x_i)$')
     #plt.plot(x_test, means.mean(1)[:,0]+2*stds_.mean(1),label='Mean from ensemble', color='blue')
     #plt.plot(x_test, means.mean(1)[:,0]-2*stds_.mean(1),label='Mean from ensemble',  color='blue'
     plt.fill_between(x_test.squeeze().numpy(), y1 = means.mean(1)[:,0]-2*stds_.mean(1),
-                            y2 = means.mean(1)[:,0]+2*stds_.mean(1),alpha=0.15, color='#DB4430')
+                            y2 = means.mean(1)[:,0]+2*stds_.mean(1),alpha=0.15, color='#DB4430', label = r'$\mu_i(x_i)\pm 2 \sigma_i(x_i)$')
     #plt.plot(x_test, means.mean(1)[:,2], label='Mean from ensemble',  color='red', zorder=2)
     #plt.plot(x_test, means.mean(1)[:,2]-2*stds.mean(1),label='Mean from ensemble',  color='red', zorder=2)
     #plt.plot(x_test, means.mean(1)[:,2]+2*stds.mean(1),label='Mean from ensemble', color='red', zorder=2)
     #plt.xlim(1,9)
-    plt.ylim(-3.5, 7.5)
+    plt.ylim(-3.5, 9.5)
+    #plt.ylim(-3.5, 7.5)
     ax.grid(alpha=0.25)
     ax.legend(loc='upper left')
     #ax.get_xaxis().set_visible(False)
@@ -114,6 +115,10 @@ def visual(active_ids_, start, index, name, censoring_train):
     #plt.scatter(x_train.numpy()[q_ids], y_train.numpy()[q_ids],color='green', zorder=3, s=100)
     #plt.ylim(-3.5, 6.5)
     #plt.xlim(-2,2)
+    plt.xlabel("x", fontsize=18)
+    plt.ylabel("y", fontsize=18)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
     plt.legend(loc='upper left')
     plt.tight_layout()
     plt.savefig("figures/cbald/fit/fit_" + name +"_"+ str(index)+".pdf")
@@ -124,11 +129,11 @@ def visual(active_ids_, start, index, name, censoring_train):
     #print(x_t.shape)
     plt.style.use('default')
     width = 487.8225
-    fig, ax = plt.subplots(figsize=set_size(width,1), frameon=False)
+    fig, ax = plt.subplots(figsize=set_size(width*1.1,1), frameon=False)
     #fig = plt.figure(figsize=(12,6))
     #ax = fig.add_subplot(111)
     plt.ylim(-3.5, 7.5)
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 18})
     plt.hist(x_t[c == 0], color='#4285F9', bins = np.arange(-5,5,0.5),  hatch="\\",label = 'Acquired observations')
     plt.hist(x_t[c == 1], color='#0F9D50', bins = np.arange(-5,5,0.5), alpha=0.8,  hatch="/", label = 'Acquired censored observations')
     # Plot the PDF.
@@ -136,15 +141,19 @@ def visual(active_ids_, start, index, name, censoring_train):
     x_plot = np.linspace(xmin, xmax, 100)
     mu = 0
     std = 1.0
-    p = norm.pdf(x_plot, mu, std)
-    plt.plot(x_plot, rescale(p, min(p), max(p), min(p), 60), color='black', label = 'x distribution')
+    p = scipy.stats.norm.pdf(x_plot, mu, std)
+    plt.plot(x_plot, rescale(p, min(p), max(p), min(p), 60), color='black', label = r'$\mathcal{D}^{pool}$ distribution.')
     plt.legend(loc='upper left')
-    plt.ylim((None,95))
+    plt.ylim((None,105))
     ax.grid(alpha=0.25)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
+    plt.xlabel("x", fontsize=18)
+    plt.ylabel("y", fontsize=18)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
     plt.tight_layout()
     plt.savefig("figures/cbald/hist/hist_" + name +"_"+ str(index)+".pdf")
     plt.close()
@@ -160,15 +169,14 @@ def visual(active_ids_, start, index, name, censoring_train):
     plt.close()
     
 
-np.random.seed(1) # set seet for common active ids.
-torch.manual_seed(1)
-random.seed(1)
+np.random.seed(42) # set seet for common active ids.
+torch.manual_seed(42)
+random.seed(42)
 
 dataset = "synth"
 x_train, y_train, censoring_train,x_val, y_val, x_test, y_test = get_dataset(dataset)
 model_args = {'in_features': 1,
                     'out_features': 4,
-                    #'hidden_size':[256,256, 256,256],
                     'hidden_size':[128,128, 128],
                     'dropout_p': 0.1,
                     'epochs': 1000,
@@ -176,18 +184,16 @@ model_args = {'in_features': 1,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                     'dataset':'synth',
                     'size':'synth'}
-## Params ds1, ds2, ds3, 
-#init_size = 10
-#query_size = 3
-#n_rounds = 30 # The first iteration is silent is silent.
-#trials = 1
 
-## Params cbald
-#init_size = 100
-#query_size = 10
-#n_rounds = 10 # The first iteration is silent is silent.
-#trials = 1
-
+model_args_2 = {'in_features': 1,
+                    'out_features': 2,
+                    'hidden_size':[128,128, 128],
+                    'dropout_p': 0.1,
+                    'epochs': 1000,
+                    'lr_rate':3e-3,
+                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                    'dataset':'synth',
+                    'size':'synth'}
 
 ## Params synth
 init_size = 5
@@ -195,17 +201,6 @@ query_size = 3
 n_rounds = 100 # The first iteration is silent is silent.
 trials = 3
 
-
-## Params sklearn
-#init_size = 25
-#query_size = 5
-#n_rounds = 100 # The first iteration is silent is silent.
-#trials = 5
-
-#init_size = 25
-#query_size = 3
-#n_rounds = 125#int((x_train.shape[0]-init_size)/query_size)#100 # The first iteration is silent is silent.
-#trials = 5
 print(n_rounds)
 print(x_train.shape)
 print(y_train.shape)
@@ -241,10 +236,10 @@ y_test = torch.from_numpy(y_test).float()
 x_test = torch.from_numpy(x_test).float()
 y_val = torch.from_numpy(y_val).float()
 x_val = torch.from_numpy(x_val).float()
-plt_threshold = 4
+plt_threshold = 5
 
 
-for k in trange(0, trials, desc='number of trials'):
+for k in range(0, trials):
     active_ids = np.zeros(x_train.shape[0], dtype = bool)
     #active_ids[np.random.choice(np.where((x < 3.0) | (x > 5.6))[0], init_size, replace=False)] = True
     ids_tmp = np.arange(x_train.shape[0])
@@ -308,8 +303,8 @@ for k in trange(0, trials, desc='number of trials'):
         c_duo_[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-    '''
-    start = avg_bald.AvgBaldSampling(x_train, y_train, censoring_train, active_ids_6, model_args, x_val=x_val, y_val=y_val, random_seed=k)
+
+    start = unc.UncertaintySampling(x_train, y_train, censoring_train, active_ids_6, model_args_2, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     avg[k,0] = start.evaluate(x_test, y_test)
     c_avg[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -318,14 +313,14 @@ for k in trange(0, trials, desc='number of trials'):
         q_ids = start.query(query_size)
         active_ids_6[q_ids] = True
         if (k < plt_threshold) and (dataset == 'synth'):
-            visual(active_ids_6, start, i, "avg_"+str(k), censoring_train)
+            visual(active_ids_6, start, i, "unc_"+str(k), censoring_train)
         start.update(active_ids_6)
         start.train()
         avg[k,i] = start.evaluate(x_test, y_test)
         c_avg[k,i] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
     del start
     gc.collect()
-
+    '''
     start = class_bald.ClassBaldSampling(x_train, y_train, censoring_train, active_ids_5, model_args, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     class_[k,0] = start.evaluate(x_test, y_test)
@@ -393,7 +388,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids_1, model_args, x_val=x_val, y_val=y_val, random_seed=k)
+    start = bald.BaldSampling(x_train, y_train, censoring_train, active_ids_1, model_args_2, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     bald_[k,0] = start.evaluate(x_test, y_test)
     c_bald_[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
@@ -410,7 +405,7 @@ for k in trange(0, trials, desc='number of trials'):
     del start
     gc.collect()
 
-    start = random_sampling.RandomSampling(x_train, y_train, censoring_train, active_ids_2, model_args, x_val=x_val, y_val=y_val, random_seed=k)
+    start = random_sampling.RandomSampling(x_train, y_train, censoring_train, active_ids_2, model_args_2, x_val=x_val, y_val=y_val, random_seed=k)
     start.train()
     random[k,0] =start.evaluate(x_test, y_test)
     c_random[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])

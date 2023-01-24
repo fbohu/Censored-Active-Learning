@@ -7,63 +7,29 @@ import argparse
 import random
 from tqdm.auto import trange
 
-from query_strategies import random_sampling, bald, censbald, duo_bald, avg_bald, class_bald, gauss_bald
+from query_strategies import random_sampling, unc, bald, censbald, duo_bald
 from read_data import *
 
 def get_strat(which):
     return {
         'random': random_sampling.RandomSampling,
         'bald': bald.BaldSampling,
+        'unc': unc.UncertaintySampling,
         'cbald': censbald.CensBaldSampling,
         'duobald': duo_bald.DuoBaldSampling,
-        'avg_bald': avg_bald.AvgBaldSampling,
-        'classbald': class_bald.ClassBaldSampling,
-        'gaussbald': gauss_bald.GaussBaldSampling
     }[which]
 
 def get_model(which, args, x_train):
-    return {'tiny': {'in_features': x_train.shape[-1],
-                    'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
+    return {'normal': {'in_features': x_train.shape[-1],
+                    'out_features': 2 if ((args.query == 'unc') or (args.query == 'bald') or (args.query == 'random')) else 4,
                     'hidden_size': np.repeat([args.hidden_size], args.layers),
-                    'dropout_p': args.dropout,#0.25 original is 25
+                    'dropout_p': args.dropout,
                     'epochs': 1000,
                     'lr_rate':3e-4,
                     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                     'size': str(args.hidden_size) + str(args.layers)},
-            'mini': {'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[32,32],
-                    'dropout_p': 0.25,
-                    'epochs': 1000,
-                    'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'mini'},
-            'small': {'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[128,128],
-                    'dropout_p': 0.25,
-                    'epochs': 1000,
-                    'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'small'},
-            'medium' :{'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[128,128,128],
-                    'dropout_p': 0.25,
-                    'epochs': 1000,
-                    'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'medium'},
-            'big' :{'in_features': x_train.shape[-1],
-                    'out_features': 4,
-                    'hidden_size':[128,128,128,128],
-                    'dropout_p': 0.25,
-                    'epochs': 1000,
-                    'lr_rate':3e-4,
-                    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                    'size': 'big'},
             'mnist' :{'in_features': -1,
-                    'out_features': 2 if ((args.query == 'bald') or (args.query == 'random')) else 4,
+                    'out_features': 2 if ((args.query == 'unc') or (args.query == 'bald') or (args.query == 'random')) else 4,
                     'hidden_size':[128,128,128,128],
                     'dropout_p': 0.25,
                     'epochs': 1000,
@@ -100,8 +66,6 @@ def main(args):
     y_test = torch.from_numpy(y_test).float()
     x_test = torch.from_numpy(x_test).float()
      
-    #torch.use_deterministic_algorithms(True)
-    #for k in trange(0, args.num_trials, desc='number of trials'):
     for k in range(0, args.num_trials):
         np.random.seed(123+k) # set seet for common active ids.
         torch.manual_seed(123+k)
@@ -114,8 +78,7 @@ def main(args):
         start.train()
         model_performance[k, 0] = start.evaluate(x_test, y_test)
         censored[k,0] = np.sum(start.Cens[start.ids])/len(start.Cens[start.ids])
-        for i in range(1,args.n_rounds+1):
-        #for i in trange(1, args.n_rounds+1, desc='running rounds'):        
+        for i in range(1,args.n_rounds+1):      
             q_ids = start.query(args.query_size)
             active_ids[q_ids] = True
             start.update(active_ids)

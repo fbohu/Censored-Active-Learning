@@ -28,20 +28,13 @@ class Strategy:
     def query(self, n):
         # Importance weighted sampling.
         scores, idxs_unlabeled = self.get_scores(n)
-        #if self.net_args['in_features'] < 0: # if we are running mnist
-        #    p = scores = + scipy.stats.gumbel_r.rvs(loc=0, scale=0.1, size=len(scores), random_state=None)
-        #    ids_ = p.argsort()[-n:][::-1]
-        #    return idxs_unlabeled[ids_]
-
-        scores = np.exp(scores) # used to get good results
-        scores[np.isnan(scores)] = 1e-7 # used to get good results
-        p = scores/np.sum(scores) # used to get good results
-        idx = np.random.choice(  # used to get good results
+        scores = np.exp(scores) 
+        scores[np.isnan(scores)] = 1e-7 
+        p = scores/np.sum(scores) 
+        idx = np.random.choice(  
                         idxs_unlabeled, replace=False, p=p, size=n,
                     )
         return idx
-        #ids_ = p.argsort()[-n:][::-1]
-        #return idxs_unlabeled[ids_]
 
 
     def update(self, new_ids, reset_net = True):
@@ -61,7 +54,6 @@ class Strategy:
 
         This functions allows for resetting of the network after each query.
         '''
-        # Clear Keras backend
         if self.net_args['in_features'] < 0:
             return BNN.BayesianConvNN(self.net_args['in_features'],
                             self.net_args['out_features'],
@@ -78,9 +70,7 @@ class Strategy:
                             epochs = self.net_args['epochs'],
                             lr_rate =self.net_args['lr_rate'],
                             name=self.name)
-        #return DenseMCDropoutNetwork.DenseMCDropoutNetwork(self.net_args['in_features'],
-        #                                                self.net_args['hidden_size'],
-         #                                               input_normalizer)
+
 
     def predict(self, x):
         return self.net.predict(x)
