@@ -3,18 +3,19 @@
 This work reproduces the experiments for our paper: Bayesian Active Learning for Censored Modelling and Survival Analysis.
 
 # Experiments
-To run the experiment `python main.py --dataset NAME_OF_DATA_SET --model "normal" --query QUERY_NAME --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+To run the experiment `python main.py --dataset NAME_OF_DATA_SET --model normal --query QUERY_NAME --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
 To replicate the results from a real world data set the following scripts should be run. The results are stored in the results folder.
-`python main.py --dataset IHC4 --model "normal" --query random --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
-`python main.py --dataset IHC4 --model "normal" --query unc --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+`python main.py --dataset IHC4 --model normal --query random --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
-`python main.py --dataset IHC4 --model "normal" --query bald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+`python main.py --dataset IHC4 --model normal --query unc --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
-`python main.py --dataset IHC4 --model "normal" --query cbald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+`python main.py --dataset IHC4 --model normal --query bald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
-`python main.py --dataset IHC4 --model "normal" --query duobald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+`python main.py --dataset IHC4 --model normal --query cbald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
+
+`python main.py --dataset IHC4 --model normal --query duobald --init_size 5 --query_size 3 --num_trials 25 --n_rounds 100  --hidden_size 128 --layers 3`
 
 ## Synthetic experiment
 Generation of figures for the synthetic experiment can be generated with `python3 run.py`
