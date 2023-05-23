@@ -56,8 +56,6 @@ def nll(y, f):
     return negloglik
 
 
-
-
 def combined_loss(y, f):
     loss = 0.0
     loss += combined_tobit(y, f[:,:2])

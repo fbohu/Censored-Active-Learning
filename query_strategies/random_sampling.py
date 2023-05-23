@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from .strategy import Strategy
 
 class RandomSampling(Strategy):
@@ -9,8 +10,12 @@ class RandomSampling(Strategy):
     #def query(self, n):
     #    return np.random.choice(np.where(self.ids==0)[0], n, replace=False)
 
-    def get_scores(self, n):
+    def get_scores(self, n, plotting=False):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
+
+        if plotting:
+            return np.ones_like(idxs_unlabeled), idxs_unlabeled, torch.ones_like(torch.tensor(idxs_unlabeled)), torch.ones_like(torch.tensor(idxs_unlabeled))
+
         return np.ones_like(idxs_unlabeled), idxs_unlabeled
 
 

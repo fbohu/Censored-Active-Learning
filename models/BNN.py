@@ -265,7 +265,7 @@ class BayesianNN(BayesianModule):
                 else:
                     counter += 1
                     if counter >= patience:
-                        print("BREAKING")
+                        #print("BREAKING")
                         break
 
             self.train()
@@ -413,7 +413,7 @@ class BayesianConvNN(BayesianModule):
                 else:
                     counter += 1
                     if counter >= patience:
-                        print("BREAKING")
+                        #print("BREAKING")
                         break
 
         self.net.load_state_dict(torch.load("model_points/" + self.name + '.pth'))
