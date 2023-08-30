@@ -15,6 +15,6 @@ class UncertaintySampling(Strategy):
         
         mean_stddev_all = samples[:,:,0].std(1)
         if plotting:
-            return torch.log(mean_stddev_all).detach().numpy(), idxs_unlabeled,  torch.ones_like(torch.tensor(idxs_unlabeled)), torch.log(mean_stddev_all)
+            return torch.log(mean_stddev_all).detach().numpy(), idxs_unlabeled,  torch.ones_like(torch.tensor(idxs_unlabeled)), torch.log(mean_stddev_all), torch.ones_like(mean_stddev_all)
 
-        return torch.log(mean_stddev_all).detach().numpy(), idxs_unlabeled
+        return mean_stddev_all.detach().numpy(), idxs_unlabeled

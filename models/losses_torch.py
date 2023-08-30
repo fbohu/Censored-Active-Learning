@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 ######################################
 ## File with loss Functions for PYTORCH
@@ -55,10 +56,18 @@ def nll(y, f):
     negloglik = -1.0*(torch.log(loglik_not_cens_arg).sum())
     return negloglik
 
+def cross_entropy(y, f):
+    censored = torch.unsqueeze(y[:,1].float(),1)
+    logits = torch.unsqueeze(torch.sigmoid(f[:,0]),1)
+    #torch.nn.BCELoss()
+    loss = F.binary_cross_entropy(logits, censored, reduction='sum')
+    return loss
 
 def combined_loss(y, f):
     loss = 0.0
     loss += combined_tobit(y, f[:,:2])
     if f.shape[-1] > 2:
-        loss += nll(y, f[:,2:])
+        loss += nll(y, f[:,2:4])
+        loss += cross_entropy(y, f[:,-1:])
+    
     return loss

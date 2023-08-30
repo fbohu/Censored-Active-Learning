@@ -16,6 +16,6 @@ class DuoUncertaintySampling(Strategy):
         mean_stddev_all_cens = samples[:,:,0].std(1)
         mean_stddev_all_obs = samples[:,:,1].std(1)
         if plotting:
-            return torch.log(mean_stddev_all_obs+mean_stddev_all_cens).detach().numpy(), idxs_unlabeled,  torch.log(mean_stddev_all_cens), torch.log(mean_stddev_all_obs)
+            return torch.log(mean_stddev_all_obs+mean_stddev_all_cens).detach().numpy(), idxs_unlabeled,  torch.log(mean_stddev_all_cens), torch.log(mean_stddev_all_obs), 1.0
 
         return torch.log(mean_stddev_all_obs+mean_stddev_all_cens).detach().numpy(), idxs_unlabeled

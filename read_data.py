@@ -59,13 +59,16 @@ def get_synth():
     x = np.random.normal(5, 1.0, size=n)
     y_true = 0.5*np.sin(2*x) + 2
     # Generate noisy observations 
-    y_obs = y_true + np.random.normal(loc=0, scale=0.01*abs(x), size=x.shape[0]) ## Heterogenue noise
+    y_obs = y_true + np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
     y_cens = copy.deepcopy(y_obs)
+    tau = 0.5*np.cos(2.0*x) + 2.0 + np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
 
+    y_cens[y_obs > tau] = tau[y_obs > tau]
+    censoring = np.int32(y_obs > tau)
     # Select random points as censored and apply p% censoring
-    censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
-    p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
-    y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
+    #censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
+    #p_c = np.random.uniform(low=0.10, high=0.30, size=np.sum(censoring==1))
+    #y_cens[censoring == 1] = y_obs[censoring == 1]*(1-p_c)
     #cens_levl = 2.0
     #y_cens[censoring == 1] = cens_levl + np.random.normal(loc=0, scale=0.05, size=sum(censoring))
     x = x.reshape(n,1)

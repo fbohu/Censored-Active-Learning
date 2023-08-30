@@ -14,7 +14,7 @@ class RandomSampling(Strategy):
         idxs_unlabeled = np.arange(self.Y.shape[0])[~self.ids]
 
         if plotting:
-            return np.ones_like(idxs_unlabeled), idxs_unlabeled, torch.ones_like(torch.tensor(idxs_unlabeled)), torch.ones_like(torch.tensor(idxs_unlabeled))
+            return np.ones_like(idxs_unlabeled), idxs_unlabeled, torch.ones_like(torch.tensor(idxs_unlabeled)), torch.ones_like(torch.tensor(idxs_unlabeled)), np.ones_like(idxs_unlabeled)
 
         return np.ones_like(idxs_unlabeled), idxs_unlabeled
 

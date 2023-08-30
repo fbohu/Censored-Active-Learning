@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import Sequential
 from .losses import *
+#from .losses_torch import *
 from tensorflow.keras.layers import Dense, Dropout
 import matplotlib.pyplot as plt
 

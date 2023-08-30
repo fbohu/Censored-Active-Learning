@@ -21,6 +21,6 @@ class BaldSampling(Strategy):
         bald = entropy_expected - expected_entropy
 
         if plotting:
-            return torch.log(bald).detach().numpy(), idxs_unlabeled, torch.ones_like(bald), torch.log(bald)
+            return torch.log(bald).detach().numpy(), idxs_unlabeled, torch.ones_like(bald), torch.log(bald), torch.ones_like(mean_stddev_all)
 
-        return torch.log(bald).detach().numpy(), idxs_unlabeled
+        return bald.detach().numpy(), idxs_unlabeled

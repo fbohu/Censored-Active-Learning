@@ -234,7 +234,7 @@ class BayesianNN(BayesianModule):
         
         self.train()
         best_loss = float("Inf")
-        patience = 25
+        patience = 50
         counter = 0
         for i in range(0, self.epochs):
             for _, (data, target) in enumerate(train_dataloader):
@@ -380,7 +380,7 @@ class BayesianConvNN(BayesianModule):
         val_dataloader = DataLoader(valdataset, batch_size=256, shuffle=True)
         
         best_loss = float("Inf")
-        patience = 10
+        patience = 50
         counter = 0
         for i in range(0, self.epochs):
             self.train()
