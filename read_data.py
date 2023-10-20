@@ -11,9 +11,9 @@ from collections import defaultdict
 from sklearn import preprocessing
 from sklearn.datasets import make_regression, make_friedman1
 
-def get_dataset(name):
+def get_dataset(name, plotting=False):
     if name == 'synth':
-        return get_synth()
+        return get_synth(plotting)
     if name == 'churn':
         return get_churn()
     if name == 'credit_risk':
@@ -46,7 +46,7 @@ def split_data(x, y_cens, y_true, censoring, test_size = 100, verbose = False):
         print(y_test.shape)
     return x_train, y_train, censoring_train, x_test, y_test
 
-def get_synth():
+def get_synth(plotting=False):
     """Data is generated as follows:
     - Define latent function f(x) = 2 + 0.5*sin(2x) + x/10
     - Generetae observations from the latent function y_obs (assuming some small observation noise, let's focus on censoring)
@@ -59,11 +59,12 @@ def get_synth():
     x = np.random.normal(5, 1.0, size=n)
     y_true = 0.5*np.sin(2*x) + 2
     # Generate noisy observations 
-    y_obs = y_true + np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
+    y_obs = y_true #+ np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
     y_cens = copy.deepcopy(y_obs)
-    tau = 0.5*np.cos(2.0*x) + 2.0 + np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
+    tau = 0.5*np.cos(2.0*x) + 2.0# + np.random.normal(loc=0, scale=0.1, size=x.shape[0]) ## Heterogenue noise
 
     y_cens[y_obs > tau] = tau[y_obs > tau]
+    y_cens = y_cens + np.random.normal(loc=0, scale=0.01*x, size=x.shape[0]) ## Heterogenue noise
     censoring = np.int32(y_obs > tau)
     # Select random points as censored and apply p% censoring
     #censoring = np.int32(0.5*np.sin(2*x) + 2 >= 2.0) 
@@ -105,9 +106,14 @@ def get_synth():
     print("y-Val: {}".format(y_val.shape))
     print("Test: {}".format(x_test.shape))
     print("y-test: {}".format(y_test.shape))
-
-
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
+    censoring_test = np.zeros_like(y_test)
+    if plotting:
+        x_tau = np.linspace(1.5, 8.5, 500)
+        tau = 0.5*np.cos(2.0*x_tau) + 2.0
+        tau = (tau-mean_y)/std_y
+        x_tau = (x_tau-means)/stds
+        return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test,x_tau, tau
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test
     
 def parse_csv(dataset, features, time_column, event_column, flip =True):
     # Borrowed from square.github.io/pysurvival/ tutorials
@@ -130,15 +136,17 @@ def parse_csv(dataset, features, time_column, event_column, flip =True):
     # Creating the X, T and E inputs
     x_train, x_test = data_train[features].values, data_test[features].values
     y_train, y_test = data_train[time_column].values, data_test[time_column].values
-    censoring_train, _ = data_train[event_column].values, data_test[event_column].values
+    censoring_train, censoring_test = data_train[event_column].values, data_test[event_column].values
     if flip:
         censoring_train = np.logical_not(censoring_train).astype(int)
+        censoring_test = np.logical_not(censoring_test).astype(int)
     
     x_train = x_train[y_train != 0]
     censoring_train = censoring_train[y_train != 0]
     y_train = y_train[y_train != 0]
 
     x_test = x_test[y_test != 0]
+    censoring_test = censoring_test[y_test != 0]
     y_test = y_test[y_test != 0]
 
     y_train = np.log(y_train) # log_transform
@@ -150,6 +158,7 @@ def parse_csv(dataset, features, time_column, event_column, flip =True):
     y_val = y_test[np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
     y_test = y_test[~np.isin(np.arange(n), val_ids)]
+    censoring_test = censoring_test[~np.isin(np.arange(n), val_ids)]
 
     means = np.mean(x_train, axis=0)
     stds = np.std(x_train, axis=0)
@@ -170,7 +179,7 @@ def parse_csv(dataset, features, time_column, event_column, flip =True):
     print("y-Val: {}".format(y_val.shape))
     print("Test: {}".format(x_test.shape))
     print("y-test: {}".format(y_test.shape))
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test  
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test
 
 
 def get_churn():
@@ -199,7 +208,11 @@ def process_h5(datasets, verbose = True, clip_outliers = False, x_lim=5.0):
     censoring_train = datasets['train']['e']
     x_test = datasets['test']['x']
     y_test = datasets['test']['t']
+    censoring_test = datasets['test']['e']
+
     censoring_train = np.logical_not(censoring_train).astype(int)
+    censoring_test = np.logical_not(censoring_test).astype(int)
+
     n = len(y_test)
     np.random.seed(10)
     val_ids = np.random.choice(np.arange(0,n), size=int(n*0.2), replace=False)
@@ -207,6 +220,7 @@ def process_h5(datasets, verbose = True, clip_outliers = False, x_lim=5.0):
     y_val = y_test[()][np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
     y_test = y_test[()][~np.isin(np.arange(n), val_ids)]
+    censoring_test = censoring_test[~np.isin(np.arange(n), val_ids)]
 
     y_test = y_test/max(y_orig)
     y_val = y_val/max(y_orig)
@@ -232,7 +246,7 @@ def process_h5(datasets, verbose = True, clip_outliers = False, x_lim=5.0):
         print("Test: {}".format(x_test.shape))
         print("y-test: {}".format(y_test.shape))
 
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test
 
 def get_gsbg():
     datasets = defaultdict(dict)
@@ -290,6 +304,7 @@ def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
     censoring_train = censoring[~np.isin(np.arange(x.shape[0]), test_ids)]
     x_test = x[np.isin(np.arange(x.shape[0]), test_ids)]
     y_test = y[np.isin(np.arange(x.shape[0]), test_ids)]
+    censoring_test = censoring[np.isin(np.arange(x.shape[0]), test_ids)]
 
     n = len(y_train)
     np.random.seed(10)
@@ -299,6 +314,7 @@ def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
     x_train = x_train[~np.isin(np.arange(n), val_ids)]
     y_train = y_train[~np.isin(np.arange(n), val_ids)]
     censoring_train = censoring_train[~np.isin(np.arange(n), val_ids)]
+    
     
     #normaliation
     means = np.mean(x_train, axis=0)
@@ -324,7 +340,7 @@ def split_tsv(x,y, test_size,censoring, clip_outliers=True, x_lim=5.0):
     print("Test: {}".format(x_test.shape))
 
 
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test
 
 def get_bmsk():
     df=pd.read_table('data/breast_msk_2018_clinical_data.tsv',sep='\t')
@@ -362,10 +378,10 @@ def get_bmsk():
     return split_tsv(x, y, test_size, censoring)
     
 def get_mnist():
-    x_train, y_train, censoring_train = mnist(type_='training')
-    x_test, y_test, _ = mnist(type_='test')
-    y_train = np.log(y_train)
-    y_test = np.log(y_test)
+    x_train, y_train, censoring_train, classes = mnist(type_='training')
+    x_test, y_test, censoring_test, _ = mnist(type_='test')
+    #y_train = np.log(y_train)
+    #y_test = np.log(y_test)
     n = len(y_test)
     np.random.seed(10)
     val_ids = np.random.choice(np.arange(0,n), size=5000, replace=False)
@@ -374,12 +390,13 @@ def get_mnist():
     y_val = y_test[np.isin(np.arange(n), val_ids)]
     x_test = x_test[~np.isin(np.arange(n), val_ids)]
     y_test = y_test[~np.isin(np.arange(n), val_ids)]
+    censoring_test = censoring_test[~np.isin(np.arange(n), val_ids)]
 
     print("Censoring: {}".format(sum(censoring_train)/(len(y_train))))
     print("Train: {}".format(x_train.shape))
     print("Val: {}".format(x_val.shape))
     print("Test: {}".format(x_test.shape))
-    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test
+    return x_train, y_train, censoring_train, x_val, y_val, x_test, y_test, censoring_test, classes
 
 def mnist(type_='training'):
     # datasets and opening code borrowed from github.com/TeaPearce/Censored_Quantile_Regression_NN/blob/main/01_code/datasets.py
@@ -428,6 +445,7 @@ def mnist(type_='training'):
 
     # normalisation
     df.data = df.data/255
+    df.target = df.target/10
     censoring_ = np.random.uniform(df.data[:,0,0,0]*0.+df.target.min(), df.data[:,0,0,0]*0.+np.quantile(df.target,0.9))
     x = np.array(df.data)
     y = df.target
@@ -435,6 +453,6 @@ def mnist(type_='training'):
         censoring = (censoring_< y)*1.0 # 1 if censored else 0
         y = np.minimum(y, censoring_)
     else: 
-        censoring = (censoring_ < df.target)*1.0 
+        censoring = (censoring_ < y)*1.0 
 
-    return x, y, censoring
+    return x, y, censoring, df.class_

@@ -46,8 +46,34 @@ class Strategy:
     def train(self):
         self.net._train(self.X[self.ids], self.Y[self.ids], self.Cens[self.ids], self.X_val, self.Y_val)
 
-    def evaluate(self, x_test, y_test):
-        return self.net.evaluate(x_test, y_test).detach().numpy()
+    def evaluate(self, x_test, y_test, censoring_test):
+        nll = self.net.evaluate(x_test, y_test).detach().numpy()
+        preds = self.net.predict(x_test).detach()[:,0]
+        tobitnll = self.net.evaluate_tobit(x_test, y_test, censoring_test).detach().numpy()
+        y_test = torch.exp(y_test)
+        preds = torch.exp(preds)
+        #print(preds.shape)
+        #print(y_test.shape)
+        #print(censoring_test.shape)
+        #print(censoring_test)
+        #print(torch.maximum(y_test-preds, torch.zeros_like(preds)))
+        #print(torch.maximum(y_test-preds, torch.zeros_like(preds)))
+        #print(torch.mean(torch.maximum(y_test-preds, torch.zeros_like(preds))))
+        #print(torch.where(torch.tensor(censoring_test), torch.maximum(y_test-preds, torch.zeros_like(preds)), abs(y_test-preds)))
+        #print(torch.where(torch.tensor(censoring_test) == 1.0, torch.maximum(y_test-preds, torch.zeros_like(preds)), abs(y_test-preds)))
+        #print(torch.mean(torch.where(torch.tensor(censoring_test) == 1.0, torch.maximum(y_test-preds, torch.zeros_like(preds)), abs(y_test-preds))))
+        mae = torch.mean(torch.abs(y_test-preds)[censoring_test == 0.0]).detach().numpy()
+        mae_hinge = torch.mean(torch.maximum(y_test-preds, torch.zeros_like(preds))[censoring_test == 1.0])
+        mae_hinge = torch.nan_to_num(mae_hinge, nan=0.0).detach().numpy() # for the case with true labels.
+        #mae_hinge = torch.mean(
+        #                torch.where(
+        #                    torch.tensor(censoring_test) == 1.0, torch.maximum(y_test-preds, torch.zeros_like(preds)), abs(y_test-preds)
+        #                    )
+        #            )
+
+        #mae_hinge = np.mean(np.where(censoring_test == 1, np.max(y_test-preds), 0))
+
+        return nll, tobitnll, mae, mae_hinge, mae+mae_hinge 
 
     def create_model(self):
         ''' Functions that creates a network based on network arguments. 

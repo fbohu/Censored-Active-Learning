@@ -254,7 +254,8 @@ class BayesianNN(BayesianModule):
                     data = data.to(device=self.device)
                     target = target.to(device=self.device)
                     preds = self.predict(data)
-                    val_loss += nll(target, preds[:,:2])
+                    #val_loss += nll(target, preds[:,:2])
+                    val_loss += combined_tobit(target, preds[:,:2])
                     #val_loss += combined_loss(target, preds).detach()
 
                 if val_loss < best_loss:
@@ -282,7 +283,15 @@ class BayesianNN(BayesianModule):
         tmp = np.concatenate((y_data[:,np.newaxis], y_data[:,np.newaxis]), axis=1) # quick hack to fit dimensions.
         tmp = torch.tensor(tmp).float()
         preds = self.predict(x_data)
-        return nll(tmp, preds[:,:2])
+        return combined_tobit(tmp, preds[:,:2])
+        #return nll(tmp, preds[:,:2])
+
+    @torch.no_grad()
+    def evaluate_tobit(self, x_data, y_data, censoring_test):
+        tmp = np.concatenate((y_data[:,np.newaxis], censoring_test[:,np.newaxis]), axis=1)
+        tmp = torch.tensor(tmp).float()
+        preds = self.predict(x_data)
+        return combined_tobit(tmp, preds[:,:2])
 
     @torch.no_grad()
     def sample(self, x, k= 20):
@@ -380,7 +389,7 @@ class BayesianConvNN(BayesianModule):
         val_dataloader = DataLoader(valdataset, batch_size=256, shuffle=True)
         
         best_loss = float("Inf")
-        patience = 50
+        patience = 10
         counter = 0
         for i in range(0, self.epochs):
             self.train()
@@ -403,7 +412,8 @@ class BayesianConvNN(BayesianModule):
                     target = target.to(device=self.device)
                     preds = self.predict(data).to(self.device)
                     #val_loss += combined_loss(target, preds)
-                    val_loss += nll(target, preds[:,:2])
+                    #val_loss += nll(target, preds[:,:2])
+                    val_loss += combined_tobit(target, preds[:,:2])
 
                 if val_loss < best_loss:
                     best_loss = val_loss
@@ -432,7 +442,15 @@ class BayesianConvNN(BayesianModule):
         tmp = np.concatenate((y_data[:,np.newaxis], y_data[:,np.newaxis]), axis=1) # quick hack to fit dimensions.
         tmp = torch.tensor(tmp).float()
         preds = self.predict(x_data)
-        return nll(tmp, preds[:,:2])
+        return combined_tobit(tmp, preds[:,:2])
+        #return nll(tmp, preds[:,:2])
+
+    @torch.no_grad()
+    def evaluate_tobit(self, x_data, y_data, censoring_test):
+        tmp = np.concatenate((y_data[:,np.newaxis], censoring_test[:,np.newaxis]), axis=1)
+        tmp = torch.tensor(tmp).float()
+        preds = self.predict(x_data)
+        return combined_tobit(tmp, preds[:,:2])
 
     @torch.no_grad()
     def sample(self, x, k= 20):
